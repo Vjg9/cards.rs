@@ -3,15 +3,71 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use std::{error::Error, io};
+use std::{error::Error, io, slice::SliceIndex};
 use tui::{
     backend::{Backend, CrosstermBackend},
-    layout::{Alignment, Constraint, Direction, Layout},
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
     text::Span,
     style::{Style, Color, Modifier},
     widgets::{Block, BorderType, Borders},
     Frame, Terminal,
 };
+
+struct App<'a> {
+   items: Vec<&'a str>,
+   selected: i32,
+}
+
+impl<'a> App<'a> {
+    fn new() -> App<'a> {
+       App {
+            items: vec![
+                "sus",
+                "hello",
+                "sussy",
+                "sus",
+                "hello",
+                "sussy",
+                "sus",
+                "hello",
+                "sussy",
+            ],
+            selected: 0,
+       } 
+    } 
+
+    fn right(&mut self) {
+        if self.selected < i32::try_from(self.items.len()).unwrap() - 1 {
+            self.selected += 1
+        } else {
+            self.selected = 0
+        }
+    }
+
+    fn left(&mut self) {
+        if self.selected == 0 {
+            self.selected = i32::try_from(self.items.len()).unwrap() - 1
+        } else {
+            self.selected -= 1
+        }
+    }
+
+    fn up(&mut self) {
+        if self.selected <= 2 {
+            self.selected = self.selected
+        } else {
+            self.selected -= 3
+        }
+    }
+
+    fn down(&mut self) {
+        if self.selected > i32::try_from(self.items.len()).unwrap() - 4 {
+            self.selected = self.selected
+        } else {
+            self.selected += 3
+        }
+    }
+} 
 
 // Run the ui
 pub fn run_ui() -> Result<(), Box<dyn Error>> {
@@ -23,7 +79,8 @@ pub fn run_ui() -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     // create app and run it
-    let res = run_app(&mut terminal);
+    let app = App::new();
+    let res = run_app(&mut terminal, app);
 
     // restore terminal
     disable_raw_mode()?;
@@ -42,20 +99,25 @@ pub fn run_ui() -> Result<(), Box<dyn Error>> {
 }
 
 // Runs the app main loop
-fn run_app<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
+fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<()> {
     loop {
-        terminal.draw(ui)?;
+        terminal.draw(|f| ui(f, &mut app))?;
 
         if let Event::Key(key) = event::read()? {
-            if let KeyCode::Char('q') = key.code {
-                return Ok(());
+            match key.code {
+                KeyCode::Char('q') => return Ok(()),
+                KeyCode::Right => app.right(),
+                KeyCode::Left => app.left(),
+                KeyCode::Up => app.up(),
+                KeyCode::Down => app.down(),
+                _ => {}
             }
         }
     }
 }
 
 // Ui code
-fn ui<B: Backend>(f: &mut Frame<B>) {
+fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 
     // Layout for Main and Side blocks
     let block_layout = Layout::default()
@@ -113,28 +175,86 @@ fn ui<B: Backend>(f: &mut Frame<B>) {
         .constraints([Constraint::Percentage(33), Constraint::Percentage(33), Constraint::Percentage(33)].as_ref())
         .split(main_block_columns[2]);
 
-    // Stack
-    let stack_block = Block::default()
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded);
-    f.render_widget(stack_block, main_block_row_1[0]);
+    let selected_style = Style::default().fg(Color::Cyan);
+    let normal_style = Style::default();
 
-    // Stack layout
-    let stack_layout = Layout::default()
-        .direction(Direction::Vertical)
-        .horizontal_margin(3)
-        .vertical_margin(1)
-        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
-        .split(main_block_row_1[0]);
+    let mut index = 0;
 
-    // Stack text
-    let stack_text_block = Block::default()
-        .title(Span::styled(
-                "text",
-                Style::default()
-                    .fg(Color::White)
-                    .add_modifier(Modifier::BOLD),
-        ))
-        .title_alignment(Alignment::Center);
-    f.render_widget(stack_text_block, stack_layout[1]);
+    for item in app.items.iter() {
+        let stack_layout: Vec<Rect>;
+        let style: Style;
+        if app.selected.to_string() == index.to_string() {
+            style = selected_style;
+        } else {
+            style = normal_style;
+        }
+        match index {
+            0 | 1 | 2 => {
+                let stack_block = Block::default()
+                    .borders(Borders::ALL)
+                    .border_type(BorderType::Rounded)
+                    .style(style);
+                f.render_widget(stack_block, main_block_row_1[index]);
+
+                // Stack layout
+                stack_layout = Layout::default()
+                    .direction(Direction::Vertical)
+                    .horizontal_margin(3)
+                    .vertical_margin(1)
+                    .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
+                    .split(main_block_row_1[index]);
+            }
+            3 | 4 | 5 => {
+                let stack_block = Block::default()
+                    .borders(Borders::ALL)
+                    .border_type(BorderType::Rounded)
+                    .style(style);
+                f.render_widget(stack_block, main_block_row_2[index - 3]);
+
+                // Stack layout
+                stack_layout = Layout::default()
+                    .direction(Direction::Vertical)
+                    .horizontal_margin(3)
+                    .vertical_margin(1)
+                    .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
+                    .split(main_block_row_2[index - 3]);
+            }
+            6 | 7 | 8 => {
+                let stack_block = Block::default()
+                    .borders(Borders::ALL)
+                    .border_type(BorderType::Rounded)
+                    .style(style);
+                f.render_widget(stack_block, main_block_row_3[index - 6]);
+
+                // Stack layout
+                stack_layout = Layout::default()
+                    .direction(Direction::Vertical)
+                    .horizontal_margin(3)
+                    .vertical_margin(1)
+                    .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
+                    .split(main_block_row_3[index - 6]);
+            }
+            _ => {
+                stack_layout = Layout::default()
+                    .direction(Direction::Vertical)
+                    .horizontal_margin(3)
+                    .vertical_margin(1)
+                    .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
+                    .split(main_block_row_1[0]);
+            }
+        }
+
+    
+        // Stack text
+        let stack_text_block = Block::default()
+            .title(Span::styled(
+                    item.to_string(),
+                    Style::default()
+                        .fg(Color::White)
+                        .add_modifier(Modifier::BOLD),
+            ))
+            .title_alignment(Alignment::Center);
+        f.render_widget(stack_text_block, stack_layout[1]);
+        index += 1;
+    }
 }
