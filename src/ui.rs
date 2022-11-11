@@ -6,65 +6,77 @@ use crossterm::{
 use std::{error::Error, io, slice::SliceIndex};
 use tui::{
     backend::{Backend, CrosstermBackend},
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
-    text::Span,
+    layout::{Alignment, Constraint, Direction, Layout},
     style::{Style, Color, Modifier},
-    widgets::{Block, BorderType, Borders},
-    Frame, Terminal,
+    text::{Span, Spans},
+    widgets::{Block, BorderType, Borders, List, ListItem, ListState},
+    Frame, Terminal
 };
 
-struct App<'a> {
-   items: Vec<&'a str>,
-   selected: i32,
+struct App {
+    items: Vec<String>,
+    state: ListState,
 }
 
-impl<'a> App<'a> {
-    fn new() -> App<'a> {
+impl App {
+    fn new() -> App {
        App {
             items: vec![
-                "sus",
-                "hello",
-                "sussy",
-                "sus",
-                "hello",
-                "sussy",
-                "sus",
-                "hello",
-                "sussy",
+                String::from("test1"),
+                String::from("test2"),
+                String::from("test3"),
+                String::from("test4"),
+                String::from("test5"),
+                String::from("test6"),
+                String::from("test7"),
+                String::from("test8"),
+                String::from("test6"),
+                String::from("test7"),
             ],
-            selected: 0,
+            state: ListState::default(),
        } 
     } 
 
-    fn right(&mut self) {
-        if self.selected < i32::try_from(self.items.len()).unwrap() - 1 {
-            self.selected += 1
-        } else {
-            self.selected = 0
+    fn get_selected(&mut self) -> String {
+        let i = match self.state.selected() {
+            Some(i) => {
+                return self.items[i].to_string()
+            },
+            None => {
+                return "".to_string()
+            }
+        };
+    }
+
+    fn next(&mut self) {
+        if self.items.len() > 0 {
+            let i = match self.state.selected() {
+                Some(i) => {
+                    if i == 0 {
+                        self.items.len() - 1
+                    } else {
+                        i - 1
+                    }
+                }
+                None => 0,
+            };
+            self.state.select(Some(i));
         }
     }
 
-    fn left(&mut self) {
-        if self.selected == 0 {
-            self.selected = i32::try_from(self.items.len()).unwrap() - 1
-        } else {
-            self.selected -= 1
-        }
-    }
-
-    fn up(&mut self) {
-        if self.selected <= 2 {
-            self.selected = self.selected
-        } else {
-            self.selected -= 3
-        }
-    }
-
-    fn down(&mut self) {
-        if self.selected > i32::try_from(self.items.len()).unwrap() - 4 {
-            self.selected = self.selected
-        } else {
-            self.selected += 3
+    fn back(&mut self) {
+        if self.items.len() > 0 {
+            let i = match self.state.selected() {
+                Some(i) => {
+                    if i >= self.items.len() - 1 {
+                        0
+                    } else {
+                        i + 1
+                    }
+                }
+                None => 0,
+            };
+            self.state.select(Some(i));
         }
     }
 } 
@@ -81,6 +93,7 @@ pub fn run_ui() -> Result<(), Box<dyn Error>> {
     // create app and run it
     let app = App::new();
     let res = run_app(&mut terminal, app);
+
 
     // restore terminal
     disable_raw_mode()?;
@@ -100,16 +113,25 @@ pub fn run_ui() -> Result<(), Box<dyn Error>> {
 
 // Runs the app main loop
 fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<()> {
+    if app.items.len() >= 0 {
+        app.state.select(Some(0));
+    }
     loop {
         terminal.draw(|f| ui(f, &mut app))?;
 
         if let Event::Key(key) = event::read()? {
             match key.code {
                 KeyCode::Char('q') => return Ok(()),
-                KeyCode::Right => app.right(),
-                KeyCode::Left => app.left(),
-                KeyCode::Up => app.up(),
-                KeyCode::Down => app.down(),
+                KeyCode::Up => app.next(),
+                KeyCode::Down => app.back(),
+                KeyCode::Left => {
+                    let i = match app.state.selected() {
+                        Some(i) => {
+                            println!("{}", app.items[i])
+                        },
+                        None => {}
+                    };
+                },
                 _ => {}
             }
         }
@@ -142,119 +164,46 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .title_alignment(Alignment::Center)
         .border_type(BorderType::Rounded);
     f.render_widget(side_block, block_layout[1]);
-
-    // Block columns
-    let main_block_columns = Layout::default()
+    
+    // Main block layout
+    let main_block_layout = Layout::default()
         .direction(Direction::Vertical)
         .horizontal_margin(3)
-        .vertical_margin(1)
-        .constraints([Constraint::Percentage(33), Constraint::Percentage(33), Constraint::Percentage(33)].as_ref())
+        .vertical_margin(2)
+        .constraints([Constraint::Percentage(100)].as_ref())
         .split(block_layout[0]);
 
-    // Block row 1
-    let main_block_row_1 = Layout::default()
-        .direction(Direction::Horizontal)
+    // Side block layout
+    let side_block_layout = Layout::default()
+        .direction(Direction::Vertical)
         .horizontal_margin(3)
-        .vertical_margin(1)
-        .constraints([Constraint::Percentage(33), Constraint::Percentage(33), Constraint::Percentage(33)].as_ref())
-        .split(main_block_columns[0]);
+        .vertical_margin(2)
+        .constraints([Constraint::Percentage(20), Constraint::Percentage(10), Constraint::Percentage(70)].as_ref())
+        .split(block_layout[1]);
 
-    // Block row 2
-    let main_block_row_2 = Layout::default()
-        .direction(Direction::Horizontal)
-        .horizontal_margin(3)
-        .vertical_margin(1)
-        .constraints([Constraint::Percentage(33), Constraint::Percentage(33), Constraint::Percentage(33)].as_ref())
-        .split(main_block_columns[1]);
+    // Side block selected stack name
+    let side_block_name = Block::default()
+        .title(Span::styled(app.get_selected(), Style::default().add_modifier(Modifier::BOLD)))
+        .title_alignment(Alignment::Center);
+    f.render_widget(side_block_name, side_block_layout[1]);
 
-    // Block row 3
-    let main_block_row_3 = Layout::default()
-        .direction(Direction::Horizontal)
-        .horizontal_margin(3)
-        .vertical_margin(1)
-        .constraints([Constraint::Percentage(33), Constraint::Percentage(33), Constraint::Percentage(33)].as_ref())
-        .split(main_block_columns[2]);
+    // Stacks
+    let stacks: Vec<ListItem> = app
+        .items
+        .iter()
+        .map(|i| {
+            let text = Span::from(Span::styled(i, Style::default()));
+            ListItem::new(text).style(Style::default().fg(Color::White))
+        })
+        .collect();
 
-    let selected_style = Style::default().fg(Color::Cyan);
-    let normal_style = Style::default();
-
-    let mut index = 0;
-
-    for item in app.items.iter() {
-        let stack_layout: Vec<Rect>;
-        let style: Style;
-        if app.selected.to_string() == index.to_string() {
-            style = selected_style;
-        } else {
-            style = normal_style;
-        }
-        match index {
-            0 | 1 | 2 => {
-                let stack_block = Block::default()
-                    .borders(Borders::ALL)
-                    .border_type(BorderType::Rounded)
-                    .style(style);
-                f.render_widget(stack_block, main_block_row_1[index]);
-
-                // Stack layout
-                stack_layout = Layout::default()
-                    .direction(Direction::Vertical)
-                    .horizontal_margin(3)
-                    .vertical_margin(1)
-                    .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
-                    .split(main_block_row_1[index]);
-            }
-            3 | 4 | 5 => {
-                let stack_block = Block::default()
-                    .borders(Borders::ALL)
-                    .border_type(BorderType::Rounded)
-                    .style(style);
-                f.render_widget(stack_block, main_block_row_2[index - 3]);
-
-                // Stack layout
-                stack_layout = Layout::default()
-                    .direction(Direction::Vertical)
-                    .horizontal_margin(3)
-                    .vertical_margin(1)
-                    .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
-                    .split(main_block_row_2[index - 3]);
-            }
-            6 | 7 | 8 => {
-                let stack_block = Block::default()
-                    .borders(Borders::ALL)
-                    .border_type(BorderType::Rounded)
-                    .style(style);
-                f.render_widget(stack_block, main_block_row_3[index - 6]);
-
-                // Stack layout
-                stack_layout = Layout::default()
-                    .direction(Direction::Vertical)
-                    .horizontal_margin(3)
-                    .vertical_margin(1)
-                    .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
-                    .split(main_block_row_3[index - 6]);
-            }
-            _ => {
-                stack_layout = Layout::default()
-                    .direction(Direction::Vertical)
-                    .horizontal_margin(3)
-                    .vertical_margin(1)
-                    .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
-                    .split(main_block_row_1[0]);
-            }
-        }
-
-    
-        // Stack text
-        let stack_text_block = Block::default()
-            .title(Span::styled(
-                    item.to_string(),
-                    Style::default()
-                        .fg(Color::White)
-                        .add_modifier(Modifier::BOLD),
-            ))
-            .title_alignment(Alignment::Center);
-        f.render_widget(stack_text_block, stack_layout[1]);
-        index += 1;
-    }
+    // Render Stacks in a list 
+    let stacks = List::new(stacks)
+        .highlight_style(
+            Style::default()
+                .bg(Color::White)
+                .fg(Color::Black)
+                .add_modifier(Modifier::BOLD),
+        );
+    f.render_stateful_widget(stacks, main_block_layout[0], &mut app.state);
 }
