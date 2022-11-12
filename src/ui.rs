@@ -12,10 +12,13 @@ use tui::{
     widgets::{Block, BorderType, Borders, List, ListItem, ListState, Table, Row},
     Frame, Terminal
 };
+use crate::db::init;
+use rusqlite::{Connection};
 
 struct App {
     items: Vec<String>,
     state: ListState,
+    db: Result<Connection, rusqlite::Error>,
 }
 
 impl App {
@@ -34,11 +37,12 @@ impl App {
                 String::from("test7"),
             ],
             state: ListState::default(),
+            db: init("./dev.db"),
        } 
     } 
 
     fn get_selected(&mut self) -> String {
-        let i = match self.state.selected() {
+        let _i = match self.state.selected() {
             Some(i) => {
                 return self.items[i].to_string()
             },
