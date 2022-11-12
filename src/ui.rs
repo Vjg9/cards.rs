@@ -3,13 +3,13 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use std::{error::Error, io, slice::SliceIndex};
+use std::{error::Error, io};
 use tui::{
     backend::{Backend, CrosstermBackend},
     layout::{Alignment, Constraint, Direction, Layout},
     style::{Style, Color, Modifier},
-    text::{Span, Spans},
-    widgets::{Block, BorderType, Borders, List, ListItem, ListState},
+    text::{Span},
+    widgets::{Block, BorderType, Borders, List, ListItem, ListState, Table, Row},
     Frame, Terminal
 };
 
@@ -124,14 +124,8 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                 KeyCode::Char('q') => return Ok(()),
                 KeyCode::Up => app.next(),
                 KeyCode::Down => app.back(),
-                KeyCode::Left => {
-                    let i = match app.state.selected() {
-                        Some(i) => {
-                            println!("{}", app.items[i])
-                        },
-                        None => {}
-                    };
-                },
+                KeyCode::Char('k') => app.next(),
+                KeyCode::Char('j') => app.back(),
                 _ => {}
             }
         }
@@ -170,7 +164,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .direction(Direction::Vertical)
         .horizontal_margin(3)
         .vertical_margin(2)
-        .constraints([Constraint::Percentage(100)].as_ref())
+        .constraints([Constraint::Percentage(90), Constraint::Percentage(10)].as_ref())
         .split(block_layout[0]);
 
     // Side block layout
@@ -206,4 +200,26 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
                 .add_modifier(Modifier::BOLD),
         );
     f.render_stateful_widget(stacks, main_block_layout[0], &mut app.state);
+
+    // Render Main block options window
+    let main_block_options = Block::default()
+            .borders(Borders::ALL)
+            .title(" Options ")
+            .title_alignment(Alignment::Center)
+            .border_type(BorderType::Rounded);
+    f.render_widget(main_block_options, main_block_layout[1]);
+
+    let main_block_options_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .horizontal_margin(3)
+        .vertical_margin(1)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(main_block_layout[1]);
+
+    // Render Options 
+    let options = Table::new(vec![
+            Row::new(vec!["a: Add new", "d: Delete", "Enter: Select", "<j, k>: up, down"]).style(Style::default()),
+        ])
+        .widths(&[Constraint::Percentage(25), Constraint::Percentage(25), Constraint::Percentage(25), Constraint::Percentage(25)]);
+    f.render_widget(options, main_block_options_layout[1])
 }
