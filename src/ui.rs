@@ -13,10 +13,11 @@ use tui::{
     Frame, Terminal
 };
 use crate::db::init;
+use crate::db::stack::{Stack, get_all};
 use rusqlite::{Connection};
 
 struct App {
-    items: Vec<String>,
+    items: Vec<Stack>,
     state: ListState,
     db: Result<Connection, rusqlite::Error>,
 }
@@ -24,27 +25,20 @@ struct App {
 impl App {
     fn new() -> App {
        App {
-            items: vec![
-                String::from("test1"),
-                String::from("test2"),
-                String::from("test3"),
-                String::from("test4"),
-                String::from("test5"),
-                String::from("test6"),
-                String::from("test7"),
-                String::from("test8"),
-                String::from("test6"),
-                String::from("test7"),
-            ],
+            items: vec![],
             state: ListState::default(),
             db: init("./dev.db"),
        } 
     } 
 
+    fn get_items(&mut self) {
+        self.items = get_all(self.db.as_ref().unwrap());
+    }
+
     fn get_selected(&mut self) -> String {
         let _i = match self.state.selected() {
             Some(i) => {
-                return self.items[i].to_string()
+                return self.items[i].name.to_string()
             },
             None => {
                 return "".to_string()
@@ -117,6 +111,7 @@ pub fn run_ui() -> Result<(), Box<dyn Error>> {
 
 // Runs the app main loop
 fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<()> {
+    app.get_items();
     if app.items.len() >= 0 {
         app.state.select(Some(0));
     }
@@ -190,7 +185,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .items
         .iter()
         .map(|i| {
-            let text = Span::from(Span::styled(i, Style::default()));
+            let text = Span::from(Span::styled(&i.name, Style::default()));
             ListItem::new(text).style(Style::default().fg(Color::White))
         })
         .collect();
@@ -225,5 +220,4 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             Row::new(vec!["a: Add new", "d: Delete", "Enter: Select", "<j, k>: up, down"]).style(Style::default()),
         ])
         .widths(&[Constraint::Percentage(25), Constraint::Percentage(25), Constraint::Percentage(25), Constraint::Percentage(25)]);
-    f.render_widget(options, main_block_options_layout[1])
-}
+    f.render_widget(options, main_block_options_layout[1]) }
