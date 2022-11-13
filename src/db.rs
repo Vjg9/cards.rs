@@ -31,6 +31,19 @@ pub mod stack {
 
         stacks
     }
+
+    // Add stack 
+    pub fn add(conn: &Connection, name: String) {
+       let stack = Stack {
+           name: name,
+           id: 0
+       };
+
+       conn.execute(
+           "INSERT INTO stack (name) VALUES (?1)",
+           (&stack.name, )
+        ).unwrap();
+    }
 }
 
 // Return connection
