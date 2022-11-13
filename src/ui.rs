@@ -20,6 +20,7 @@ enum Selected {
     Main,
     Side,
     StackNameInput,
+    DeleteStackPopup,
 }
 
 struct App {
@@ -49,7 +50,22 @@ impl App {
         stack::add(self.db.as_ref().unwrap(), name);
     }
 
-    fn get_selected(&mut self) -> String {
+    fn delete_stack(&mut self, id: i32) {
+        stack::delete(self.db.as_ref().unwrap(), id);
+    }
+
+    fn get_selected_id(&mut self) -> i32 {
+        let _i = match self.state.selected() {
+            Some(i) => {
+                return self.items[i].id
+            },
+            None => {
+                return 0
+            }
+        };
+    }
+
+    fn get_selected_name(&mut self) -> String {
         let _i = match self.state.selected() {
             Some(i) => {
                 return self.items[i].name.to_string()
@@ -140,6 +156,9 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     KeyCode::Char('k') => app.next(),
                     KeyCode::Char('j') => app.back(),
                     KeyCode::Char('a') => {app.selected_window = Selected::StackNameInput},
+                    KeyCode::Char('d') => {
+                        app.selected_window = Selected::DeleteStackPopup;
+                    },
                     _ => {}
                 }
                 Selected::Side => match key.code {
@@ -163,6 +182,19 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     }
                     KeyCode::Backspace => {
                         app.stack_name_input.pop();
+                    }
+                    _ => {}
+                }
+                Selected::DeleteStackPopup => match key.code {
+                    KeyCode::Enter => {
+                        let id = app.get_selected_id();
+                        app.state.select(None);
+                        app.delete_stack(id);
+                        app.get_items();
+                        app.selected_window = Selected::Main;
+                    }
+                    KeyCode::Esc => {
+                        app.selected_window = Selected::Main;
                     }
                     _ => {}
                 }
@@ -226,7 +258,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 
     // Side block selected stack name
     let side_block_name = Block::default()
-        .title(Span::styled(app.get_selected(), Style::default().add_modifier(Modifier::BOLD)))
+        .title(Span::styled(app.get_selected_name(), Style::default().add_modifier(Modifier::BOLD)))
         .title_alignment(Alignment::Center);
     f.render_widget(side_block_name, side_block_layout[1]);
 
@@ -313,6 +345,49 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .style(Style::default().fg(Color::White))
         .alignment(Alignment::Right);
 
+    // Delete Stack popup 
+    let delete_stack_popup_block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded);
+
+    // Delete Stack question
+    let delete_stack_popup_text = Paragraph::new(
+        Span::from("Are you Sure?")
+    )
+        .alignment(Alignment::Center);
+
+    // Delete Stack Layout
+    let delete_stack_popup_layout_row = Layout::default()
+        .direction(Direction::Horizontal)
+        .horizontal_margin(3)
+        .vertical_margin(1)
+        .constraints([Constraint::Percentage(33), Constraint::Percentage(33), Constraint::Percentage(33)])
+        .split(center_col_layout[1]);
+    let delete_stack_popup_layout_col_1 = Layout::default()
+        .direction(Direction::Vertical)
+        .horizontal_margin(3)
+        .vertical_margin(1)
+        .constraints([Constraint::Percentage(25), Constraint::Percentage(30), Constraint::Percentage(30), Constraint::Percentage(15)])
+        .split(delete_stack_popup_layout_row[1]);
+
+    // Delete Stack Button
+    let delete_stack_button = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded);
+
+    // Delete Stack Button Layout 
+    let delete_stack_button_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
+        .split(delete_stack_popup_layout_col_1[2]);
+
+    // Delete Stack Button text 
+    let delete_stack_button_text = Paragraph::new(
+        Span::from("Yes")
+    )
+        .alignment(Alignment::Center);
+
+
     // Render Popup windows
     match app.selected_window {
         Selected::StackNameInput => {
@@ -320,6 +395,12 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             f.render_widget(add_stack_input, add_stack_popup_layout_col_1[1]);
             f.render_widget(add_stack_input_text, add_stack_popup_layout_col_0[1]);
         },
+        Selected::DeleteStackPopup => {
+            f.render_widget(delete_stack_popup_block, center_col_layout[1]);
+            f.render_widget(delete_stack_popup_text, delete_stack_popup_layout_col_1[1]);
+            f.render_widget(delete_stack_button, delete_stack_popup_layout_col_1[2]);
+            f.render_widget(delete_stack_button_text, delete_stack_button_layout[1]);
+        }
         _ => {}
     } 
 }
