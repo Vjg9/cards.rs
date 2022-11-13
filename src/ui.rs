@@ -112,7 +112,7 @@ pub fn run_ui() -> Result<(), Box<dyn Error>> {
 // Runs the app main loop
 fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<()> {
     app.get_items();
-    if app.items.len() >= 0 {
+    if app.items.len() > 0 {
         app.state.select(Some(0));
     }
     loop {
