@@ -12,8 +12,8 @@ use tui::{
     widgets::{Block, BorderType, Borders, List, ListItem, ListState, Table, Row},
     Frame, Terminal
 };
-use crate::db::init;
-use crate::db::stack::{Stack, get_all};
+use crate::db::{init, stack};
+use crate::db::stack::{Stack};
 use rusqlite::{Connection};
 
 struct App {
@@ -32,7 +32,11 @@ impl App {
     } 
 
     fn get_items(&mut self) {
-        self.items = get_all(self.db.as_ref().unwrap());
+        self.items = stack::get_all(self.db.as_ref().unwrap());
+    }
+
+    fn add_stack(&mut self, name: String) {
+        stack::add(self.db.as_ref().unwrap(), name);
     }
 
     fn get_selected(&mut self) -> String {
@@ -125,6 +129,10 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                 KeyCode::Down => app.back(),
                 KeyCode::Char('k') => app.next(),
                 KeyCode::Char('j') => app.back(),
+                KeyCode::Char('a') => {
+                    app.add_stack("test".to_string());
+                    app.get_items(); 
+                },
                 _ => {}
             }
         }
