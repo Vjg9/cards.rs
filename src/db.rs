@@ -44,6 +44,20 @@ pub mod stack {
            (&stack.name, )
         ).unwrap();
     }
+
+    // Delete stack 
+    pub fn delete(conn: &Connection, id: i32) {
+        let stack = Stack {
+            name: String::from(""),
+            id: id,
+        };
+
+        conn.execute(
+            "DELETE FROM stack WHERE id=(?1)",
+            (&stack.id, )
+        )
+            .unwrap(); 
+    }
 }
 
 // Return connection
