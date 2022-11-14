@@ -225,14 +225,6 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .constraints([Constraint::Percentage(33), Constraint::Percentage(33), Constraint::Percentage(33)].as_ref())
         .split(center_row_layout[1]);
 
-    // Draw Main block
-    let main_block = Block::default()
-        .borders(Borders::ALL)
-        .title(" Stacks ")
-        .title_alignment(Alignment::Center)
-        .border_type(BorderType::Rounded);
-    f.render_widget(main_block, block_layout[0]);
-
     // Draw Side block
     let side_block = Block::default()
         .borders(Borders::ALL)
@@ -241,6 +233,78 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .border_type(BorderType::Rounded);
     f.render_widget(side_block, block_layout[1]);
     
+    // Side block layout
+    let side_block_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .horizontal_margin(3)
+        .vertical_margin(2)
+        .constraints([Constraint::Percentage(15), Constraint::Percentage(12), Constraint::Percentage(10), Constraint::Percentage(53), Constraint::Percentage(10)].as_ref())
+        .split(block_layout[1]);
+
+    // Side block name layout 
+    let side_block_name_layout = Layout::default()
+        .direction(Direction::Horizontal)
+        .horizontal_margin(3)
+        .vertical_margin(2)
+        .constraints([Constraint::Percentage(33), Constraint::Percentage(33), Constraint::Percentage(33)].as_ref())
+        .split(side_block_layout[1]);
+
+    // Side block selected stack name box 
+    let side_block_name_box = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded);
+    f.render_widget(side_block_name_box, side_block_layout[1]);
+
+    // Side block selected stack name
+    let side_block_name = Block::default()
+        .title(Span::styled(app.get_selected_name(), Style::default().add_modifier(Modifier::BOLD)))
+        .title_alignment(Alignment::Center);
+    f.render_widget(side_block_name, side_block_name_layout[1]);
+
+    // Side block options layout
+    let side_block_options_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .horizontal_margin(7)
+        .vertical_margin(2)
+        .constraints([Constraint::Percentage(33), Constraint::Percentage(33), Constraint::Percentage(33), Constraint::Percentage(1)].as_ref())
+        .split(side_block_layout[3]);
+
+    // Side block option blocks
+    let side_block_option_1 = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded);
+    f.render_widget(side_block_option_1, side_block_options_layout[0]);
+    let side_block_option_2 = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded);
+    f.render_widget(side_block_option_2, side_block_options_layout[1]);
+    let side_block_option_3 = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded);
+    f.render_widget(side_block_option_3, side_block_options_layout[2]);
+
+    // Side block options text layout
+    let side_block_options_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .horizontal_margin(7)
+        .vertical_margin(2)
+        .constraints([Constraint::Percentage(17), Constraint::Percentage(17), Constraint::Percentage(17), Constraint::Percentage(17), Constraint::Percentage(12), Constraint::Percentage(10)].as_ref())
+        .split(side_block_layout[3]);
+
+    // Side block option text
+    let side_block_name = Block::default()
+        .title(Span::styled("a: Add Card", Style::default().add_modifier(Modifier::BOLD)))
+        .title_alignment(Alignment::Center);
+    f.render_widget(side_block_name, side_block_options_layout[1]);
+    let side_block_name = Block::default()
+        .title(Span::styled("d: Delete Card", Style::default().add_modifier(Modifier::BOLD)))
+        .title_alignment(Alignment::Center);
+    f.render_widget(side_block_name, side_block_options_layout[3]);
+    let side_block_name = Block::default()
+        .title(Span::styled("s: Start Revision", Style::default().add_modifier(Modifier::BOLD)))
+        .title_alignment(Alignment::Center);
+    f.render_widget(side_block_name, side_block_options_layout[5]);
+
     // Main block layout
     let main_block_layout = Layout::default()
         .direction(Direction::Vertical)
@@ -249,19 +313,14 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .constraints([Constraint::Percentage(90), Constraint::Percentage(10)].as_ref())
         .split(block_layout[0]);
 
-    // Side block layout
-    let side_block_layout = Layout::default()
-        .direction(Direction::Vertical)
-        .horizontal_margin(3)
-        .vertical_margin(2)
-        .constraints([Constraint::Percentage(20), Constraint::Percentage(10), Constraint::Percentage(70)].as_ref())
-        .split(block_layout[1]);
+    // Draw Main block
+    let main_block = Block::default()
+        .borders(Borders::ALL)
+        .title(" Stacks ")
+        .title_alignment(Alignment::Center)
+        .border_type(BorderType::Rounded);
+    f.render_widget(main_block, block_layout[0]);
 
-    // Side block selected stack name
-    let side_block_name = Block::default()
-        .title(Span::styled(app.get_selected_name(), Style::default().add_modifier(Modifier::BOLD)))
-        .title_alignment(Alignment::Center);
-    f.render_widget(side_block_name, side_block_layout[1]);
 
     // Stacks
     let stacks: Vec<ListItem> = app
