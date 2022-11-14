@@ -16,6 +16,13 @@ use crate::db::{init, stack};
 use crate::db::stack::{Stack};
 use rusqlite::{Connection};
 
+// Windows
+pub mod main_window;
+pub mod side_window;
+pub mod stack_name_input;
+pub mod delete_stack_popup;
+
+// Selected Window Enum
 enum Selected {
     Main,
     Side,
