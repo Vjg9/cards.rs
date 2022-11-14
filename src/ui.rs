@@ -8,19 +8,13 @@ use tui::{
     backend::{Backend, CrosstermBackend},
     layout::{Alignment, Constraint, Direction, Layout},
     style::{Style, Color, Modifier},
-    text::{Span},
+    text::Span,
     widgets::{Block, BorderType, Borders, List, ListItem, ListState, Table, Row, Paragraph},
     Frame, Terminal
 };
 use crate::db::{init, stack};
-use crate::db::stack::{Stack};
-use rusqlite::{Connection};
-
-// Windows
-pub mod main_window;
-pub mod side_window;
-pub mod stack_name_input;
-pub mod delete_stack_popup;
+use crate::db::stack::Stack;
+use rusqlite::Connection;
 
 // Selected Window Enum
 enum Selected {
