@@ -343,7 +343,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let add_stack_input_text = Paragraph::new(
         Span::from("name:")
     )
-        .style(Style::default().fg(Color::White))
+        .style(Style::default().fg(Color::White).add_modifier(Modifier::BOLD))
         .alignment(Alignment::Right);
 
     // Delete Stack popup 
@@ -362,7 +362,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .direction(Direction::Horizontal)
         .horizontal_margin(3)
         .vertical_margin(1)
-        .constraints([Constraint::Percentage(33), Constraint::Percentage(33), Constraint::Percentage(33)])
+        .constraints([Constraint::Percentage(5), Constraint::Percentage(90), Constraint::Percentage(5)])
         .split(center_col_layout[1]);
     let delete_stack_popup_layout_col_1 = Layout::default()
         .direction(Direction::Vertical)
@@ -386,8 +386,8 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let delete_stack_button_text = Paragraph::new(
         Span::from("Yes")
     )
-        .alignment(Alignment::Center);
-
+        .alignment(Alignment::Center)
+        .style(Style::default().add_modifier(Modifier::BOLD));
 
     // Render Popup windows
     match app.selected_window {
