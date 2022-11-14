@@ -264,13 +264,11 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let side_block_name_box = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded);
-    f.render_widget(side_block_name_box, side_block_layout[1]);
 
     // Side block selected stack name
     let side_block_name = Block::default()
         .title(Span::styled(app.get_selected_name(), Style::default().add_modifier(Modifier::BOLD)))
         .title_alignment(Alignment::Center);
-    f.render_widget(side_block_name, side_block_name_layout[1]);
 
     // Side block options layout
     let side_block_options_layout = Layout::default()
@@ -284,18 +282,15 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let side_block_option_1 = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded);
-    f.render_widget(side_block_option_1, side_block_options_layout[0]);
     let side_block_option_2 = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded);
-    f.render_widget(side_block_option_2, side_block_options_layout[1]);
     let side_block_option_3 = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded);
-    f.render_widget(side_block_option_3, side_block_options_layout[2]);
 
     // Side block options text layout
-    let side_block_options_layout = Layout::default()
+    let side_block_options_text_layout = Layout::default()
         .direction(Direction::Vertical)
         .horizontal_margin(7)
         .vertical_margin(2)
@@ -303,18 +298,30 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .split(side_block_layout[3]);
 
     // Side block option text
-    let side_block_name = Block::default()
+    let side_block_name_1 = Block::default()
         .title(Span::styled("a: Add Card", Style::default().add_modifier(Modifier::BOLD)))
         .title_alignment(Alignment::Center);
-    f.render_widget(side_block_name, side_block_options_layout[1]);
-    let side_block_name = Block::default()
+    let side_block_name_2 = Block::default()
         .title(Span::styled("d: Delete Card", Style::default().add_modifier(Modifier::BOLD)))
         .title_alignment(Alignment::Center);
-    f.render_widget(side_block_name, side_block_options_layout[3]);
-    let side_block_name = Block::default()
+    let side_block_name_3 = Block::default()
         .title(Span::styled("s: Start Revision", Style::default().add_modifier(Modifier::BOLD)))
         .title_alignment(Alignment::Center);
-    f.render_widget(side_block_name, side_block_options_layout[5]);
+
+    // Render side block widgets
+    match app.state.selected() {
+        Some(_i) => {
+            f.render_widget(side_block_name_box, side_block_layout[1]);
+            f.render_widget(side_block_name, side_block_name_layout[1]);
+            f.render_widget(side_block_option_1, side_block_options_layout[0]);
+            f.render_widget(side_block_option_2, side_block_options_layout[1]);
+            f.render_widget(side_block_option_3, side_block_options_layout[2]);
+            f.render_widget(side_block_name_1, side_block_options_text_layout[1]);
+            f.render_widget(side_block_name_2, side_block_options_text_layout[3]);
+            f.render_widget(side_block_name_3, side_block_options_text_layout[5]);
+        },
+        None => {}
+    }
 
     // Main block layout
     let main_block_layout = Layout::default()
