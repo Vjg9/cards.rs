@@ -160,9 +160,15 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     KeyCode::Char('d') => {
                         app.selected_window = Selected::DeleteStackPopup;
                     },
+                    KeyCode::Enter => {
+                        app.selected_window = Selected::Side;
+                    }
                     _ => {}
                 }
                 Selected::Side => match key.code {
+                    KeyCode::Esc => {
+                        app.selected_window = Selected::Main;
+                    }
                     _ => {}
                 }
                 Selected::StackNameInput => match key.code {
