@@ -156,7 +156,10 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     KeyCode::Down => app.back(),
                     KeyCode::Char('k') => app.next(),
                     KeyCode::Char('j') => app.back(),
-                    KeyCode::Char('a') => {app.selected_window = Selected::StackNameInput},
+                    KeyCode::Char('a') => {
+                        app.state.select(None);
+                        app.selected_window = Selected::StackNameInput;
+                    },
                     KeyCode::Char('d') => {
                         app.selected_window = Selected::DeleteStackPopup;
                     },
@@ -182,10 +185,12 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                         app.selected_window = Selected::Main;
                     },
                     KeyCode::Enter => {
-                        app.add_stack(app.stack_name_input.to_string());
-                        app.get_items(); 
-                        app.stack_name_input = String::new();
-                        app.selected_window = Selected::Main;
+                        if app.stack_name_input.to_string() != "" {
+                            app.add_stack(app.stack_name_input.to_string());
+                            app.get_items(); 
+                            app.stack_name_input = String::new();
+                            app.selected_window = Selected::Main;
+                        }
                     }
                     KeyCode::Backspace => {
                         app.stack_name_input.pop();
