@@ -322,11 +322,25 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .split(center_row_layout[1]);
 
     // Draw Side block
-    let side_block = Block::default()
-        .borders(Borders::ALL)
-        .title(" Selected Stack ")
-        .title_alignment(Alignment::Center)
-        .border_type(BorderType::Rounded);
+    let side_block;
+    match app.selected_window {
+        Selected::Side => {
+            side_block = Block::default()
+                .borders(Borders::ALL)
+                .title(Span::styled(" Selected Stack ", Style::default().fg(Color::White)))
+                .title_alignment(Alignment::Center)
+                .border_type(BorderType::Rounded)
+                .style(Style::default().fg(Color::Cyan));
+        } 
+        _ => {
+            side_block = Block::default()
+                .borders(Borders::ALL)
+                .title(Span::styled(" Selected Stack ", Style::default().fg(Color::White)))
+                .title_alignment(Alignment::Center)
+                .border_type(BorderType::Rounded)
+                .style(Style::default().fg(Color::White));
+        }
+    }
     f.render_widget(side_block, block_layout[1]);
     
     // Side block layout
@@ -346,11 +360,13 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 
     // Side block selected stack name box 
     let side_block_name_box = Block::default()
+        .style(Style::default().fg(Color::White))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded);
 
     // Side block selected stack name
     let side_block_name = Block::default()
+        .style(Style::default().fg(Color::White))
         .title(Span::styled(app.get_selected_name(), Style::default().add_modifier(Modifier::BOLD)))
         .title_alignment(Alignment::Center);
 
@@ -364,12 +380,15 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 
     // Side block option blocks
     let side_block_option_1 = Block::default()
+        .style(Style::default().fg(Color::White))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded);
     let side_block_option_2 = Block::default()
+        .style(Style::default().fg(Color::White))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded);
     let side_block_option_3 = Block::default()
+        .style(Style::default().fg(Color::White))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded);
 
@@ -428,11 +447,25 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .split(block_layout[0]);
 
     // Draw Main block
-    let main_block = Block::default()
-        .borders(Borders::ALL)
-        .title(" Stacks ")
-        .title_alignment(Alignment::Center)
-        .border_type(BorderType::Rounded);
+    let main_block;
+    match app.selected_window {
+        Selected::Main => {
+            main_block = Block::default()
+                .borders(Borders::ALL)
+                .title(Span::styled(" Stacks ", Style::default().fg(Color::White)))
+                .title_alignment(Alignment::Center)
+                .border_type(BorderType::Rounded)
+                .style(Style::default().fg(Color::Cyan));
+        }
+        _ => {
+            main_block = Block::default()
+                .borders(Borders::ALL)
+                .title(Span::styled(" Stacks ", Style::default().fg(Color::White)))
+                .title_alignment(Alignment::Center)
+                .border_type(BorderType::Rounded)
+                .style(Style::default().fg(Color::White));
+        }
+    }
     f.render_widget(main_block, block_layout[0]);
 
 
@@ -461,6 +494,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             .borders(Borders::ALL)
             .title(" Options ")
             .title_alignment(Alignment::Center)
+            .style(Style::default().fg(Color::White))
             .border_type(BorderType::Rounded);
     f.render_widget(main_block_options, main_block_layout[1]);
 
@@ -480,9 +514,10 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 
     // Add Stack Popub window 
     let add_stack_popup_block = Block::default()
+        .style(Style::default().fg(Color::Cyan))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .title(" Add Stack ")
+        .title(Span::styled(" Add Stack ", Style::default().fg(Color::White)))
         .title_alignment(Alignment::Center);
 
     // Add Stack Popup Layout 
@@ -529,11 +564,13 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 
     // Add Stack input outline
     let add_stack_input_outline = Block::default()
+        .style(Style::default().fg(Color::White)) 
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded);
 
     // Delete Stack popup 
     let delete_stack_popup_block = Block::default()
+        .style(Style::default().fg(Color::Cyan))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded);
 
@@ -541,6 +578,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let delete_stack_popup_text = Paragraph::new(
         Span::from("Are you Sure?")
     )
+        .style(Style::default().fg(Color::White)) 
         .alignment(Alignment::Center);
 
     // Delete Stack Layout
@@ -559,6 +597,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 
     // Delete Stack Button
     let delete_stack_button = Block::default()
+        .style(Style::default().fg(Color::White)) 
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded);
 
@@ -583,8 +622,9 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 
     // Add card block
     let add_card_block = Block::default()
+        .style(Style::default().fg(Color::Cyan))
         .borders(Borders::ALL)
-        .title(" Add Card ")
+        .title(Span::styled(" Add Card ", Style::default().fg(Color::White)))
         .title_alignment(Alignment::Center)
         .border_type(BorderType::Rounded);
 
@@ -598,11 +638,13 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 
     // Add card title input box
     let add_card_title_input_box = Block::default()
+        .style(Style::default().fg(Color::White))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded);
 
     // Add card text input box 
     let add_card_text_input_box = Block::default()
+        .style(Style::default().fg(Color::White)) 
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded);
 
