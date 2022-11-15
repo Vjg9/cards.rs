@@ -409,6 +409,14 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .constraints([Constraint::Percentage(45), Constraint::Percentage(55)])
         .split(add_stack_popup_layout_row[0]);
 
+    // Add Stack Input box layout 
+    let add_stack_popup_input_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .horizontal_margin(6)
+        .vertical_margin(2)
+        .constraints([Constraint::Percentage(33), Constraint::Percentage(42), Constraint::Percentage(33)])
+        .split(center_col_layout[1]);
+
     // Add Stack Input Text 
     let add_stack_input = Paragraph::new(
         Span::from(app.stack_name_input.as_ref())
@@ -422,6 +430,11 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     )
         .style(Style::default().fg(Color::White).add_modifier(Modifier::BOLD))
         .alignment(Alignment::Right);
+
+    // Add Stack input outline
+    let add_stack_input_outline = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded);
 
     // Delete Stack popup 
     let delete_stack_popup_block = Block::default()
@@ -470,6 +483,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     match app.selected_window {
         Selected::StackNameInput => {
             f.render_widget(add_stack_popup_block, center_col_layout[1]);
+            f.render_widget(add_stack_input_outline, add_stack_popup_input_layout[1]);
             f.render_widget(add_stack_input, add_stack_popup_layout_col_1[1]);
             f.render_widget(add_stack_input_text, add_stack_popup_layout_col_0[1]);
         },
