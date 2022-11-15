@@ -9,11 +9,12 @@ use tui::{
     layout::{Alignment, Constraint, Direction, Layout},
     style::{Style, Color, Modifier},
     text::Span,
-    widgets::{Block, BorderType, Borders, List, ListItem, ListState, Table, Row, Paragraph},
+    widgets::{Block, BorderType, Borders, List, ListItem, ListState, Table, Row, Paragraph, Wrap},
     Frame, Terminal
 };
-use crate::db::{init, stack};
+use crate::db::{init, stack, card};
 use crate::db::stack::Stack;
+use crate::db::card::Card;
 use rusqlite::Connection;
 
 // Selected Window Enum
@@ -22,6 +23,13 @@ enum Selected {
     Side,
     StackNameInput,
     DeleteStackPopup,
+    AddCard,
+}
+
+// Card Input Focus Enum
+enum CardInputFocus {
+    Title,
+    Text,
 }
 
 struct App {
@@ -30,6 +38,9 @@ struct App {
     db: Result<Connection, rusqlite::Error>,
     selected_window: Selected,
     stack_name_input: String,
+    card_title_input: String,
+    card_text_input: String,
+    card_input_focus: CardInputFocus,
 }
 
 impl App {
@@ -40,21 +51,34 @@ impl App {
             db: init("./dev.db"),
             selected_window: Selected::Main,
             stack_name_input: String::new(), 
+            card_title_input: String::new(),
+            card_text_input: String::new(),
+            card_input_focus: CardInputFocus::Title,
        } 
     } 
 
+    // Add card
+    fn add_card(&mut self, title: String, text: String) {
+        let stack_id = self.get_selected_id();
+        card::add(self.db.as_ref().unwrap(), stack_id, title, text);
+    }
+
+    // Get stacks
     fn get_items(&mut self) {
         self.items = stack::get_all(self.db.as_ref().unwrap());
     }
 
+    // Add stack
     fn add_stack(&mut self, name: String) {
         stack::add(self.db.as_ref().unwrap(), name);
     }
-
+    
+    // Delete stack
     fn delete_stack(&mut self, id: i32) {
         stack::delete(self.db.as_ref().unwrap(), id);
     }
 
+    // Get id from selected stack
     fn get_selected_id(&mut self) -> i32 {
         let _i = match self.state.selected() {
             Some(i) => {
@@ -66,6 +90,7 @@ impl App {
         };
     }
 
+    // Get name from selected stack
     fn get_selected_name(&mut self) -> String {
         let _i = match self.state.selected() {
             Some(i) => {
@@ -77,6 +102,7 @@ impl App {
         };
     }
 
+    // Select next stack
     fn next(&mut self) {
         if self.items.len() > 0 {
             let i = match self.state.selected() {
@@ -93,6 +119,7 @@ impl App {
         }
     }
 
+    // Select previous stack
     fn back(&mut self) {
         if self.items.len() > 0 {
             let i = match self.state.selected() {
@@ -164,11 +191,19 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                         app.selected_window = Selected::DeleteStackPopup;
                     },
                     KeyCode::Enter => {
-                        app.selected_window = Selected::Side;
+                        match app.state.selected() {
+                            Some(_i) => {
+                                app.selected_window = Selected::Side;
+                            }
+                            None => {}
+                        }
                     }
                     _ => {}
                 }
                 Selected::Side => match key.code {
+                    KeyCode::Char('a') => {
+                        app.selected_window = Selected::AddCard
+                    }
                     KeyCode::Esc => {
                         app.selected_window = Selected::Main;
                     }
@@ -210,6 +245,56 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     }
                     _ => {}
                 }
+                Selected::AddCard => match key.code {
+                    KeyCode::Esc => {
+                        app.selected_window = Selected::Side;
+                        app.card_text_input = String::new();
+                        app.card_title_input = String::new();
+                    }
+                    KeyCode::Tab => {
+                        match &app.card_input_focus {
+                            CardInputFocus::Title => {
+                                app.card_input_focus = CardInputFocus::Text;
+                            }
+                            CardInputFocus::Text => {
+                                app.card_input_focus = CardInputFocus::Title;
+                            }
+                        }
+                    }
+                    KeyCode::Enter => {
+                        if app.card_text_input != "".to_string() && app.card_title_input != "".to_string() {
+                            app.add_card(app.card_title_input.to_string(), app.card_text_input.to_string());
+                            app.selected_window = Selected::Side;
+                            app.card_text_input = String::new();
+                            app.card_title_input = String::new();
+                        }
+                    }
+                    KeyCode::Backspace => {
+                        match &app.card_input_focus {
+                            CardInputFocus::Title => {
+                                app.card_title_input.pop();
+                            }
+                            CardInputFocus::Text => {
+                                app.card_text_input.pop();
+                            }
+                        }
+                    }
+                    KeyCode::Char(c) => {
+                        match &app.card_input_focus {
+                            CardInputFocus::Title => {
+                                if app.card_title_input.len() < 30 {
+                                    app.card_title_input.push(c)
+                                }
+                            }
+                            CardInputFocus::Text => {
+                                if app.card_text_input.len() < 100 {
+                                    app.card_text_input.push(c)
+                                }
+                            }
+                        }
+                    }
+                    _ => {}
+                }
             }
         }
     }
@@ -247,8 +332,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     // Side block layout
     let side_block_layout = Layout::default()
         .direction(Direction::Vertical)
-        .horizontal_margin(6)
-        .vertical_margin(2)
+        .horizontal_margin(6) .vertical_margin(2)
         .constraints([Constraint::Percentage(15), Constraint::Percentage(12), Constraint::Percentage(15), Constraint::Percentage(53), Constraint::Percentage(5)].as_ref())
         .split(block_layout[1]);
 
@@ -491,6 +575,82 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .alignment(Alignment::Center)
         .style(Style::default().add_modifier(Modifier::BOLD));
 
+    // Add card center layout 
+    let add_card_center_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Percentage(25), Constraint::Percentage(49), Constraint::Percentage(25)].as_ref())
+        .split(center_row_layout[1]);
+
+    // Add card block
+    let add_card_block = Block::default()
+        .borders(Borders::ALL)
+        .title(" Add Card ")
+        .title_alignment(Alignment::Center)
+        .border_type(BorderType::Rounded);
+
+    // Add card layout 
+    let add_card_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .vertical_margin(3)
+        .horizontal_margin(7)
+        .constraints([Constraint::Percentage(30), Constraint::Percentage(70)])
+        .split(add_card_center_layout[1]);
+
+    // Add card title input box
+    let add_card_title_input_box = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded);
+
+    // Add card text input box 
+    let add_card_text_input_box = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded);
+
+    // Add card title input box layout
+    let add_card_title_input_layout_half = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(add_card_layout[0]);
+    let add_card_title_input_layout = Layout::default()
+        .direction(Direction::Horizontal)
+        .horizontal_margin(2)
+        .constraints([Constraint::Percentage(17), Constraint::Percentage(83)])
+        .split(add_card_title_input_layout_half[1]);
+
+    // Add card text input box layout
+    let add_card_text_input_promt_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Percentage(22), Constraint::Percentage(78)])
+        .split(add_card_layout[1]);
+    let add_card_text_input_layout = Layout::default()
+        .direction(Direction::Horizontal)
+        .horizontal_margin(2)
+        .constraints([Constraint::Percentage(15), Constraint::Percentage(85)])
+        .split(add_card_text_input_promt_layout[1]);
+
+    // Add card title input box promt
+    let add_card_title_input_promt = Paragraph::new(
+        Span::from("title: ")
+    )
+        .style(Style::default().add_modifier(Modifier::BOLD));
+
+    // Add card title input box value
+    let add_card_title_input_value = Paragraph::new(
+        Span::from(app.card_title_input.as_ref())
+    );
+
+    // Add card text input box promt
+    let add_card_text_input_promt = Paragraph::new(
+        Span::from("text: ")
+    )
+        .style(Style::default().add_modifier(Modifier::BOLD));
+
+    // Add card text input box value
+    let add_card_text_input_value = Paragraph::new(
+        Span::from(app.card_text_input.as_ref())
+    )
+        .wrap(Wrap { trim: true });
+
     // Render Popup windows
     match app.selected_window {
         Selected::StackNameInput => {
@@ -504,6 +664,15 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             f.render_widget(delete_stack_popup_text, delete_stack_popup_layout_col_1[1]);
             f.render_widget(delete_stack_button, delete_stack_popup_layout_col_1[2]);
             f.render_widget(delete_stack_button_text, delete_stack_button_layout[1]);
+        }
+        Selected::AddCard => {
+            f.render_widget(add_card_block, add_card_center_layout[1]);
+            f.render_widget(add_card_title_input_box, add_card_layout[0]);
+            f.render_widget(add_card_text_input_box, add_card_layout[1]);
+            f.render_widget(add_card_title_input_promt, add_card_title_input_layout[0]);
+            f.render_widget(add_card_text_input_promt, add_card_text_input_layout[0]);
+            f.render_widget(add_card_title_input_value, add_card_title_input_layout[1]);
+            f.render_widget(add_card_text_input_value, add_card_text_input_layout[1]);
         }
         _ => {}
     } 
