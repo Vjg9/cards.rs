@@ -247,9 +247,9 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     // Side block layout
     let side_block_layout = Layout::default()
         .direction(Direction::Vertical)
-        .horizontal_margin(3)
+        .horizontal_margin(6)
         .vertical_margin(2)
-        .constraints([Constraint::Percentage(15), Constraint::Percentage(12), Constraint::Percentage(10), Constraint::Percentage(53), Constraint::Percentage(10)].as_ref())
+        .constraints([Constraint::Percentage(15), Constraint::Percentage(12), Constraint::Percentage(15), Constraint::Percentage(53), Constraint::Percentage(5)].as_ref())
         .split(block_layout[1]);
 
     // Side block name layout 
@@ -257,7 +257,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .direction(Direction::Horizontal)
         .horizontal_margin(3)
         .vertical_margin(2)
-        .constraints([Constraint::Percentage(33), Constraint::Percentage(33), Constraint::Percentage(33)].as_ref())
+        .constraints([Constraint::Percentage(30), Constraint::Percentage(43), Constraint::Percentage(13), Constraint::Percentage(1)].as_ref())
         .split(side_block_layout[1]);
 
     // Side block selected stack name box 
@@ -273,7 +273,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     // Side block options layout
     let side_block_options_layout = Layout::default()
         .direction(Direction::Vertical)
-        .horizontal_margin(7)
+        .horizontal_margin(4)
         .vertical_margin(2)
         .constraints([Constraint::Percentage(33), Constraint::Percentage(33), Constraint::Percentage(33), Constraint::Percentage(1)].as_ref())
         .split(side_block_layout[3]);
@@ -290,12 +290,24 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .border_type(BorderType::Rounded);
 
     // Side block options text layout
-    let side_block_options_text_layout = Layout::default()
+    let side_block_options_text_layout_1 = Layout::default()
         .direction(Direction::Vertical)
         .horizontal_margin(7)
         .vertical_margin(2)
-        .constraints([Constraint::Percentage(17), Constraint::Percentage(17), Constraint::Percentage(17), Constraint::Percentage(17), Constraint::Percentage(12), Constraint::Percentage(10)].as_ref())
-        .split(side_block_layout[3]);
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
+        .split(side_block_options_layout[0]);
+    let side_block_options_text_layout_2 = Layout::default()
+        .direction(Direction::Vertical)
+        .horizontal_margin(7)
+        .vertical_margin(2)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
+        .split(side_block_options_layout[1]);
+    let side_block_options_text_layout_3 = Layout::default()
+        .direction(Direction::Vertical)
+        .horizontal_margin(7)
+        .vertical_margin(2)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
+        .split(side_block_options_layout[2]);
 
     // Side block option text
     let side_block_name_1 = Block::default()
@@ -316,9 +328,9 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             f.render_widget(side_block_option_1, side_block_options_layout[0]);
             f.render_widget(side_block_option_2, side_block_options_layout[1]);
             f.render_widget(side_block_option_3, side_block_options_layout[2]);
-            f.render_widget(side_block_name_1, side_block_options_text_layout[1]);
-            f.render_widget(side_block_name_2, side_block_options_text_layout[3]);
-            f.render_widget(side_block_name_3, side_block_options_text_layout[5]);
+            f.render_widget(side_block_name_1, side_block_options_text_layout_1[1]);
+            f.render_widget(side_block_name_2, side_block_options_text_layout_2[1]);
+            f.render_widget(side_block_name_3, side_block_options_text_layout_3[1]);
         },
         None => {}
     }
