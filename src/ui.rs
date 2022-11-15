@@ -179,8 +179,12 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
         if let Event::Key(key) = event::read()? {
             match app.selected_window {
                 Selected::Main => match key.code {
-                    KeyCode::Char('q') => return Ok(()), KeyCode::Up => app.next(),
+                    KeyCode::Char('q') => return Ok(()), 
+                    KeyCode::Up => app.next(),
                     KeyCode::Down => app.back(),
+                    KeyCode::Tab => {
+                        app.selected_window = Selected::Side;
+                    },
                     KeyCode::Char('k') => app.next(),
                     KeyCode::Char('j') => app.back(),
                     KeyCode::Char('a') => {
@@ -201,6 +205,10 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     _ => {}
                 }
                 Selected::Side => match key.code {
+                    KeyCode::Char('q') => return Ok(()), 
+                    KeyCode::Tab => {
+                        app.selected_window = Selected::Main;
+                    },
                     KeyCode::Char('a') => {
                         app.selected_window = Selected::AddCard
                     }
