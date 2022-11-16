@@ -355,7 +355,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let side_block_layout = Layout::default()
         .direction(Direction::Vertical)
         .horizontal_margin(6) .vertical_margin(2)
-        .constraints([Constraint::Percentage(15), Constraint::Percentage(12), Constraint::Percentage(15), Constraint::Percentage(53), Constraint::Percentage(5)].as_ref())
+        .constraints([Constraint::Percentage(15), Constraint::Percentage(12), Constraint::Percentage(5), Constraint::Percentage(65), Constraint::Percentage(2)].as_ref())
         .split(block_layout[1]);
 
     // Side block name layout 
@@ -383,7 +383,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .direction(Direction::Vertical)
         .horizontal_margin(4)
         .vertical_margin(2)
-        .constraints([Constraint::Percentage(33), Constraint::Percentage(33), Constraint::Percentage(33), Constraint::Percentage(1)].as_ref())
+        .constraints([Constraint::Percentage(25), Constraint::Percentage(25), Constraint::Percentage(25), Constraint::Percentage(25)].as_ref())
         .split(side_block_layout[3]);
 
     // Side block option blocks
@@ -406,13 +406,13 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .horizontal_margin(7)
         .vertical_margin(2)
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
-        .split(side_block_options_layout[0]);
+        .split(side_block_options_layout[1]);
     let side_block_options_text_layout_2 = Layout::default()
         .direction(Direction::Vertical)
         .horizontal_margin(7)
         .vertical_margin(2)
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
-        .split(side_block_options_layout[1]);
+        .split(side_block_options_layout[3]);
     let side_block_options_text_layout_3 = Layout::default()
         .direction(Direction::Vertical)
         .horizontal_margin(7)
@@ -425,10 +425,10 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .title(Span::styled("a: Add Card", Style::default().add_modifier(Modifier::BOLD)))
         .title_alignment(Alignment::Center);
     let side_block_name_2 = Block::default()
-        .title(Span::styled("d: Delete Card", Style::default().add_modifier(Modifier::BOLD)))
+        .title(Span::styled("s: Start Revision", Style::default().add_modifier(Modifier::BOLD)))
         .title_alignment(Alignment::Center);
     let side_block_name_3 = Block::default()
-        .title(Span::styled("s: Start Revision", Style::default().add_modifier(Modifier::BOLD)))
+        .title(Span::styled("l: List Cards", Style::default().add_modifier(Modifier::BOLD)))
         .title_alignment(Alignment::Center);
 
     // Render side block widgets
@@ -436,8 +436,8 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         Some(_i) => {
             f.render_widget(side_block_name_box, side_block_layout[1]);
             f.render_widget(side_block_name, side_block_name_layout[1]);
-            f.render_widget(side_block_option_1, side_block_options_layout[0]);
-            f.render_widget(side_block_option_2, side_block_options_layout[1]);
+            f.render_widget(side_block_option_1, side_block_options_layout[1]);
+            f.render_widget(side_block_option_2, side_block_options_layout[3]);
             f.render_widget(side_block_option_3, side_block_options_layout[2]);
             f.render_widget(side_block_name_1, side_block_options_text_layout_1[1]);
             f.render_widget(side_block_name_2, side_block_options_text_layout_2[1]);
