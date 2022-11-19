@@ -41,6 +41,7 @@ struct App {
     card_title_input: String,
     card_text_input: String,
     card_input_focus: CardInputFocus,
+    cards: Vec<Card>,
 }
 
 impl App {
@@ -54,8 +55,15 @@ impl App {
             card_title_input: String::new(),
             card_text_input: String::new(),
             card_input_focus: CardInputFocus::Title,
+            cards: vec![]
        } 
     } 
+
+    // List cards
+    fn list_cards(&mut self) {
+        let stack_id = self.get_selected_id();
+        self.cards = card::list(self.db.as_ref().unwrap(), stack_id);
+    }
 
     // Add card
     fn add_card(&mut self, title: String, text: String) {
@@ -211,6 +219,9 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     },
                     KeyCode::Char('a') => {
                         app.selected_window = Selected::AddCard
+                    }
+                    KeyCode::Char('l') => {
+                        app.list_cards();
                     }
                     KeyCode::Esc => {
                         app.selected_window = Selected::Main;
