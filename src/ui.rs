@@ -98,10 +98,10 @@ impl App {
         if self.cards.len() > 0 {
             let i = match self.cards_state.selected() {
                 Some(i) => {
-                    if i == 0 {
-                        self.cards.len() - 1
+                    if i >= self.cards.len() - 1 {
+                        0
                     } else {
-                        i - 1
+                        i + 1
                     }
                 }
                 None => 0,
@@ -115,10 +115,10 @@ impl App {
         if self.cards.len() > 0 {
             let i = match self.cards_state.selected() {
                 Some(i) => {
-                    if i >= self.cards.len() - 1 {
-                        0
+                    if i == 0 {
+                        self.cards.len() - 1
                     } else {
-                        i + 1
+                        i - 1
                     }
                 }
                 None => 0,
