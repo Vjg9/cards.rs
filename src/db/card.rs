@@ -21,3 +21,28 @@ pub fn add(conn: &Connection, stack_id: i32, title: String, text: String) {
         (&card.title, &card.text, &card.stack_id)
     ).unwrap();
 }
+
+pub fn list(conn: &Connection, stack_id: i32) -> Vec<Card> {
+    let mut raw_cards = conn.prepare(format!("SELECT * FROM card WHERE stack_id={}", stack_id).as_str()).unwrap();
+    let card_result = raw_cards.query_map([], |row| {
+        Ok(Card {
+            id: row.get(0)?,
+            title: row.get(1)?,
+            text: row.get(2)?,
+            stack_id: row.get(3)?,
+        })
+    }).unwrap();
+    let mut cards = Vec::new();
+    for card in card_result {
+        let i_unwraped = card.unwrap();
+        let i: Card = Card {
+            id: i_unwraped.id,
+            title: i_unwraped.title,
+            text: i_unwraped.text,
+            stack_id: i_unwraped.stack_id,
+        };
+        cards.push(i);
+    }
+
+    cards
+}
