@@ -46,3 +46,18 @@ pub fn list(conn: &Connection, stack_id: i32) -> Vec<Card> {
 
     cards
 }
+
+pub fn delete(conn: &Connection, id: i32) {
+    let card = Card {
+        id: id,
+        text: String::new(),
+        title: String::new(),
+        stack_id: 0,
+    };
+
+    conn.execute(
+        "DELETE FROM card WHERE id=(?1)",
+        (&card.id, )
+    )
+        .unwrap(); 
+}
