@@ -25,6 +25,7 @@ enum Selected {
     DeleteStackPopup,
     AddCard,
     CardList,
+    DeleteCard,
 }
 
 // Card Input Focus Enum
@@ -61,6 +62,24 @@ impl App {
             cards_state: ListState::default()
        } 
     } 
+
+    // Delete card 
+    fn delete_card(&mut self) {
+        let id = self.get_selected_card_id();
+        card::delete(self.db.as_ref().unwrap(), id);
+    }
+
+    // Get selected card id 
+    fn get_selected_card_id(&mut self) -> i32 {
+        let _i = match self.cards_state.selected() {
+            Some(i) => {
+                return self.cards[i].id
+            },
+            None => {
+                return 0
+            }
+        };
+    }
 
     // List cards
     fn list_cards(&mut self) {
@@ -324,6 +343,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                             app.selected_window = Selected::Side;
                             app.card_text_input = String::new();
                             app.card_title_input = String::new();
+                            app.card_input_focus = CardInputFocus::Title;
                         }
                     }
                     KeyCode::Backspace => {
@@ -367,6 +387,22 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     }
                     KeyCode::Down => {
                         app.next_card()
+                    }
+                    KeyCode::Char('d') => {
+                        if app.cards.len() > 0 {
+                            app.selected_window = Selected::DeleteCard;
+                        }
+                    }
+                    _ => {}
+                }
+                Selected::DeleteCard => match key.code {
+                    KeyCode::Esc => {
+                        app.selected_window = Selected::CardList;
+                    }
+                    KeyCode::Enter => {
+                        app.delete_card();
+                        app.list_cards();
+                        app.selected_window = Selected::CardList;
                     }
                     _ => {}
                 }
@@ -803,6 +839,44 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
                 .add_modifier(Modifier::BOLD),
         );
 
+    // Delete card box 
+    let delete_card_block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .style(Style::default().fg(Color::Cyan));
+
+    // Delete card layout 
+    let delete_card_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .vertical_margin(2)
+        .horizontal_margin(3)
+        .constraints([Constraint::Percentage(25), Constraint::Percentage(30), Constraint::Percentage(30), Constraint::Percentage(15)])
+        .split(center_col_layout[1]);
+
+    // Delete card promt 
+    let delete_card_promt = Paragraph::new(
+        Span::styled("Are you sure?", Style::default().fg(Color::White))
+    )
+        .alignment(Alignment::Center);
+
+    // Delete card button box 
+    let delete_card_button_block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .style(Style::default().fg(Color::White));
+
+    // Delete card button layout 
+    let delete_card_button_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(delete_card_layout[2]);
+
+    // Delete card button text 
+    let delete_card_button_text = Paragraph::new(
+        Span::styled("Yes", Style::default().fg(Color::White))
+    )
+        .alignment(Alignment::Center);
+
     // Render Popup windows
     match app.selected_window {
         Selected::StackNameInput => {
@@ -829,6 +903,12 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         Selected::CardList => {
             f.render_widget(card_list_block, center_col_layout[1]);
             f.render_stateful_widget(cards, card_list_layout[0], &mut app.cards_state);
+        }
+        Selected::DeleteCard => {
+            f.render_widget(delete_card_block, center_col_layout[1]);
+            f.render_widget(delete_card_promt, delete_card_layout[1]);
+            f.render_widget(delete_card_button_block, delete_card_layout[2]);
+            f.render_widget(delete_card_button_text, delete_card_button_layout[1]);
         }
         _ => {}
     } 
