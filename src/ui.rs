@@ -24,6 +24,7 @@ enum Selected {
     StackNameInput,
     DeleteStackPopup,
     AddCard,
+    CardList,
 }
 
 // Card Input Focus Enum
@@ -42,6 +43,7 @@ struct App {
     card_text_input: String,
     card_input_focus: CardInputFocus,
     cards: Vec<Card>,
+    cards_state: ListState,
 }
 
 impl App {
@@ -55,7 +57,8 @@ impl App {
             card_title_input: String::new(),
             card_text_input: String::new(),
             card_input_focus: CardInputFocus::Title,
-            cards: vec![]
+            cards: vec![],
+            cards_state: ListState::default()
        } 
     } 
 
@@ -69,6 +72,40 @@ impl App {
     fn add_card(&mut self, title: String, text: String) {
         let stack_id = self.get_selected_id();
         card::add(self.db.as_ref().unwrap(), stack_id, title, text);
+    }
+
+    // Next card
+    fn next_card(&mut self) {
+        if self.cards.len() > 0 {
+            let i = match self.cards_state.selected() {
+                Some(i) => {
+                    if i == 0 {
+                        self.cards.len() - 1
+                    } else {
+                        i - 1
+                    }
+                }
+                None => 0,
+            };
+            self.cards_state.select(Some(i));
+        }
+    }
+
+    // Previous card
+    fn back_card(&mut self) {
+        if self.cards.len() > 0 {
+            let i = match self.cards_state.selected() {
+                Some(i) => {
+                    if i >= self.cards.len() - 1 {
+                        0
+                    } else {
+                        i + 1
+                    }
+                }
+                None => 0,
+            };
+            self.cards_state.select(Some(i));
+        }
     }
 
     // Get stacks
@@ -200,10 +237,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                         app.selected_window = Selected::StackNameInput;
                     },
                     KeyCode::Char('d') => {
-                        app.selected_window = Selected::DeleteStackPopup;
-                    },
-                    KeyCode::Enter => {
-                        match app.state.selected() {
+                        app.selected_window = Selected::DeleteStackPopup; }, KeyCode::Enter => { match app.state.selected() {
                             Some(_i) => {
                                 app.selected_window = Selected::Side;
                             }
@@ -222,6 +256,10 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     }
                     KeyCode::Char('l') => {
                         app.list_cards();
+                        if app.cards.len() > 0 {
+                            app.cards_state.select(Some(0));
+                        }
+                        app.selected_window = Selected::CardList;
                     }
                     KeyCode::Esc => {
                         app.selected_window = Selected::Main;
@@ -311,6 +349,24 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                                 }
                             }
                         }
+                    }
+                    _ => {}
+                }
+                Selected::CardList => match key.code {
+                    KeyCode::Esc => {
+                        app.selected_window = Selected::Side;
+                    }
+                    KeyCode::Char('j') => {
+                        app.next_card()
+                    }
+                    KeyCode::Char('k') => {
+                        app.back_card()
+                    }
+                    KeyCode::Up => {
+                        app.back_card()
+                    }
+                    KeyCode::Down => {
+                        app.next_card()
                     }
                     _ => {}
                 }
@@ -712,6 +768,41 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     )
         .wrap(Wrap { trim: true });
 
+    // Card list box 
+    let card_list_block = Block::default()
+        .borders(Borders::ALL)
+        .style(Style::default().fg(Color::Cyan))
+        .title(Span::styled(" Cards ", Style::default().fg(Color::White)))
+        .title_alignment(Alignment::Center)
+        .border_type(BorderType::Rounded);
+
+    // Card list layout 
+    let card_list_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .vertical_margin(2)
+        .horizontal_margin(3)
+        .constraints([Constraint::Percentage(100)])
+        .split(center_col_layout[1]);
+
+    // Card list list 
+    let cards: Vec<ListItem> = app
+        .cards
+        .iter()
+        .map(|i| {
+            let text = Span::from(Span::styled(&i.title, Style::default()));
+            ListItem::new(text).style(Style::default().fg(Color::White))
+        })
+        .collect();
+
+    // Render Cards in a list
+    let cards = List::new(cards)
+        .highlight_style(
+            Style::default()
+                .bg(Color::White)
+                .fg(Color::Black)
+                .add_modifier(Modifier::BOLD),
+        );
+
     // Render Popup windows
     match app.selected_window {
         Selected::StackNameInput => {
@@ -734,6 +825,10 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             f.render_widget(add_card_text_input_promt, add_card_text_input_layout[0]);
             f.render_widget(add_card_title_input_value, add_card_title_input_layout[1]);
             f.render_widget(add_card_text_input_value, add_card_text_input_layout[1]);
+        }
+        Selected::CardList => {
+            f.render_widget(card_list_block, center_col_layout[1]);
+            f.render_stateful_widget(cards, card_list_layout[0], &mut app.cards_state);
         }
         _ => {}
     } 
