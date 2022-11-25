@@ -54,3 +54,17 @@ pub fn delete(conn: &Connection, id: i32) {
     )
         .unwrap(); 
 }
+
+// Edit stack
+pub fn edit(conn: &Connection, id: i32, name: String) {
+    let stack = Stack {
+       id,
+       name,
+    };
+
+    conn.execute(
+        "UPDATE stack SET name=(?1) WHERE id=(?2)",
+        (stack.name, stack.id)
+    )
+        .unwrap();
+}
