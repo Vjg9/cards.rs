@@ -61,3 +61,18 @@ pub fn delete(conn: &Connection, id: i32) {
     )
         .unwrap(); 
 }
+
+pub fn edit(conn: &Connection, id: i32, title: String, text: String) {
+    let card = Card {
+        id,
+        title,
+        text,
+        stack_id: 0,
+    };
+
+    conn.execute(
+        "UPDATE card SET title=(?1), text=(?2) WHERE id=(?3)",
+        (&card.title, &card.text, &card.id)
+    )
+        .unwrap();
+}
