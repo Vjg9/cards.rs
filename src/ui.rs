@@ -27,6 +27,7 @@ enum Selected {
     AddCard,
     CardList,
     DeleteCard,
+    EditCard,
     RevisionTitle,
     RevisionText,
 }
@@ -67,6 +68,14 @@ impl App {
             revision_index: 0,
        } 
     } 
+
+    // Edit card
+    fn edit_card(&mut self) {
+        let id = self.get_selected_card_id();
+        let title = &self.card_title_input;
+        let text = &self.card_text_input;
+        card::edit(self.db.as_ref().unwrap(), id, title.to_string(), text.to_string())
+    }
 
     // Delete card 
     fn delete_card(&mut self) {
@@ -438,6 +447,18 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                             app.selected_window = Selected::DeleteCard;
                         }
                     }
+                    KeyCode::Char('e') => {
+                        if app.cards.len() > 0 {
+                            match app.cards_state.selected() {
+                                Some(i) => {
+                                    app.card_title_input = app.cards[i].title.as_str().to_string();
+                                    app.card_text_input = app.cards[i].text.as_str().to_string();
+                                }
+                                None => {}
+                            }
+                            app.selected_window = Selected::EditCard;
+                        }
+                    }
                     _ => {}
                 }
                 Selected::DeleteCard => match key.code {
@@ -448,6 +469,58 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                         app.delete_card();
                         app.list_cards();
                         app.selected_window = Selected::CardList;
+                    }
+                    _ => {}
+                }
+                Selected::EditCard => match key.code {
+                    KeyCode::Esc => {
+                        app.selected_window = Selected::CardList;
+                        app.card_text_input = String::new();
+                        app.card_title_input = String::new();
+                    }
+                    KeyCode::Tab => {
+                        match &app.card_input_focus {
+                            CardInputFocus::Title => {
+                                app.card_input_focus = CardInputFocus::Text;
+                            }
+                            CardInputFocus::Text => {
+                                app.card_input_focus = CardInputFocus::Title;
+                            }
+                        }
+                    }
+                    KeyCode::Enter => {
+                        if app.card_text_input != "".to_string() && app.card_title_input != "".to_string() {
+                            app.edit_card();
+                            app.card_text_input = String::new();
+                            app.card_title_input = String::new();
+                            app.card_input_focus = CardInputFocus::Title;
+                            app.list_cards();
+                            app.selected_window = Selected::CardList;
+                        }
+                    }
+                    KeyCode::Backspace => {
+                        match &app.card_input_focus {
+                            CardInputFocus::Title => {
+                                app.card_title_input.pop();
+                            }
+                            CardInputFocus::Text => {
+                                app.card_text_input.pop();
+                            }
+                        }
+                    }
+                    KeyCode::Char(c) => {
+                        match &app.card_input_focus {
+                            CardInputFocus::Title => {
+                                if app.card_title_input.len() < 30 {
+                                    app.card_title_input.push(c)
+                                }
+                            }
+                            CardInputFocus::Text => {
+                                if app.card_text_input.len() < 100 {
+                                    app.card_text_input.push(c)
+                                }
+                            }
+                        }
                     }
                     _ => {}
                 }
@@ -958,6 +1031,14 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     )
         .alignment(Alignment::Center);
 
+    // Edit card box 
+    let edit_card_block = Block::default()
+        .style(Style::default().fg(Color::Cyan))
+        .borders(Borders::ALL)
+        .title(Span::styled(" Edit Card ", Style::default().fg(Color::White)))
+        .title_alignment(Alignment::Center)
+        .border_type(BorderType::Rounded);
+
     // Revision title box 
     let revision_title_box = Block::default()
         .borders(Borders::ALL)
@@ -1063,6 +1144,15 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             f.render_widget(add_stack_input_outline, add_stack_popup_input_layout[1]);
             f.render_widget(add_stack_input, add_stack_popup_layout_col_1[1]);
             f.render_widget(add_stack_input_text, add_stack_popup_layout_col_0[1]);
+        }
+        Selected::EditCard => {
+            f.render_widget(edit_card_block, add_card_center_layout[1]);
+            f.render_widget(add_card_title_input_box, add_card_layout[0]);
+            f.render_widget(add_card_text_input_box, add_card_layout[1]);
+            f.render_widget(add_card_title_input_promt, add_card_title_input_layout[0]);
+            f.render_widget(add_card_text_input_promt, add_card_text_input_layout[0]);
+            f.render_widget(add_card_title_input_value, add_card_title_input_layout[1]);
+            f.render_widget(add_card_text_input_value, add_card_text_input_layout[1]);
         }
         _ => {}
     } 
