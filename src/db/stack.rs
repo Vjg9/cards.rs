@@ -31,7 +31,7 @@ pub fn get_all(conn: &Connection) -> Vec<Stack> {
 // Add stack 
 pub fn add(conn: &Connection, name: String) {
     let stack = Stack {
-        name: name,
+        name,
         id: 0
     };
 
@@ -45,7 +45,7 @@ pub fn add(conn: &Connection, name: String) {
 pub fn delete(conn: &Connection, id: i32) {
     let stack = Stack {
         name: String::from(""),
-        id: id,
+        id,
     };
 
     conn.execute(

@@ -11,9 +11,9 @@ pub struct Card {
 pub fn add(conn: &Connection, stack_id: i32, title: String, text: String) {
     let card = Card {
         id: 0,
-        title: title,
-        text: text,
-        stack_id: stack_id,
+        title,
+        text,
+        stack_id,
     };
 
     conn.execute(
@@ -49,7 +49,7 @@ pub fn list(conn: &Connection, stack_id: i32) -> Vec<Card> {
 
 pub fn delete(conn: &Connection, id: i32) {
     let card = Card {
-        id: id,
+        id,
         text: String::new(),
         title: String::new(),
         stack_id: 0,
