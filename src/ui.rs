@@ -691,7 +691,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 
     // Render Options 
     let options = Table::new(vec![
-            Row::new(vec!["a: Add new", "d: Delete", "Enter: Select", "<j, k>: up, down"]).style(Style::default()),
+            Row::new(vec!["a: Add new", "d: Delete", "e: Edit", "<j, k>: up, down"]).style(Style::default()),
         ])
         .widths(&[Constraint::Percentage(25), Constraint::Percentage(25), Constraint::Percentage(25), Constraint::Percentage(25)]);
     f.render_widget(options, main_block_options_layout[1]);
