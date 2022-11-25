@@ -26,6 +26,8 @@ enum Selected {
     AddCard,
     CardList,
     DeleteCard,
+    RevisionTitle,
+    RevisionText,
 }
 
 // Card Input Focus Enum
@@ -45,6 +47,7 @@ struct App {
     card_input_focus: CardInputFocus,
     cards: Vec<Card>,
     cards_state: ListState,
+    revision_index: usize,
 }
 
 impl App {
@@ -59,7 +62,8 @@ impl App {
             card_text_input: String::new(),
             card_input_focus: CardInputFocus::Title,
             cards: vec![],
-            cards_state: ListState::default()
+            cards_state: ListState::default(),
+            revision_index: 0,
        } 
     } 
 
@@ -280,6 +284,12 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                         }
                         app.selected_window = Selected::CardList;
                     }
+                    KeyCode::Char('s') => {
+                        app.list_cards();
+                        if app.cards.len() > 0 {
+                            app.selected_window = Selected::RevisionTitle;
+                        }
+                    }
                     KeyCode::Esc => {
                         app.selected_window = Selected::Main;
                     }
@@ -403,6 +413,34 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                         app.delete_card();
                         app.list_cards();
                         app.selected_window = Selected::CardList;
+                    }
+                    _ => {}
+                }
+                Selected::RevisionTitle => match key.code {
+                    KeyCode::Esc => {
+                        app.selected_window = Selected::Side;
+                    }
+                    KeyCode::Enter => {
+                        app.selected_window = Selected::RevisionText;
+                    }
+                    _ => {}
+                }
+                Selected::RevisionText => match key.code {
+                    KeyCode::Esc => {
+                        if app.revision_index == app.cards.len() - 1 {
+                            app.selected_window = Selected::Side;
+                        } else {
+                            app.selected_window = Selected::RevisionTitle;
+                        }
+                    }
+                    KeyCode::Enter => {
+                        if app.revision_index == app.cards.len() - 1 {
+                            app.selected_window = Selected::Side;
+                            app.revision_index = 0;
+                        } else {
+                            app.revision_index += 1;
+                            app.selected_window = Selected::RevisionTitle;
+                        }
                     }
                     _ => {}
                 }
@@ -877,6 +915,65 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     )
         .alignment(Alignment::Center);
 
+    // Revision title box 
+    let revision_title_box = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .title(Span::styled(" Front ", Style::default().fg(Color::White)))
+        .title_alignment(Alignment::Center)
+        .style(Style::default().fg(Color::Cyan));
+
+    // Revision title box layout 
+    let revision_title_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .vertical_margin(2)
+        .horizontal_margin(3)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(center_col_layout[1]);
+
+    // Revision title promt 
+    let revision_title_promt;
+    if app.cards.len() > 0 {
+        revision_title_promt = Paragraph::new(
+            Span::styled(app.cards[app.revision_index].title.as_str(), Style::default().fg(Color::White))
+        )
+            .alignment(Alignment::Center);
+    } else {
+        revision_title_promt = Paragraph::new(
+            Span::styled("No title", Style::default().fg(Color::White))
+        )
+            .alignment(Alignment::Center);
+    }
+
+    // Revision text box 
+    let revision_text_box = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .title(Span::styled(" Back ", Style::default().fg(Color::White)))
+        .title_alignment(Alignment::Center)
+        .style(Style::default().fg(Color::Cyan));
+
+    // Revision text box layout 
+    let revision_text_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .vertical_margin(2)
+        .horizontal_margin(3)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(center_col_layout[1]);
+
+    // Revision text promt 
+    let revision_text_promt;
+    if app.cards.len() > 0 {
+        revision_text_promt = Paragraph::new(
+            Span::styled(app.cards[app.revision_index].text.as_str(), Style::default().fg(Color::White))
+        )
+            .alignment(Alignment::Center);
+    } else {
+        revision_text_promt = Paragraph::new(
+            Span::styled("No text", Style::default().fg(Color::White))
+        )
+    }
+
     // Render Popup windows
     match app.selected_window {
         Selected::StackNameInput => {
@@ -909,6 +1006,14 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             f.render_widget(delete_card_promt, delete_card_layout[1]);
             f.render_widget(delete_card_button_block, delete_card_layout[2]);
             f.render_widget(delete_card_button_text, delete_card_button_layout[1]);
+        }
+        Selected::RevisionTitle => {
+            f.render_widget(revision_title_box, center_col_layout[1]);
+            f.render_widget(revision_title_promt, revision_title_layout[1]);
+        }
+        Selected::RevisionText => {
+            f.render_widget(revision_text_box, center_col_layout[1]);
+            f.render_widget(revision_text_promt, revision_text_layout[1]);
         }
         _ => {}
     } 
