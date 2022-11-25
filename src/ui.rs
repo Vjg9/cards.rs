@@ -23,6 +23,7 @@ enum Selected {
     Side,
     StackNameInput,
     DeleteStackPopup,
+    EditStackPopup,
     AddCard,
     CardList,
     DeleteCard,
@@ -146,6 +147,13 @@ impl App {
         stack::delete(self.db.as_ref().unwrap(), id);
     }
 
+    // Edit stack 
+    fn edit_stack(&mut self) {
+        let id = self.get_selected_id();
+        let name = &self.stack_name_input;
+        stack::edit(self.db.as_ref().unwrap(), id, name.to_string());
+    }
+
     // Get id from selected stack
     fn get_selected_id(&mut self) -> i32 {
         let _i = match self.state.selected() {
@@ -267,6 +275,10 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                             None => {}
                         }
                     }
+                    KeyCode::Char('e') => {
+                        app.stack_name_input = app.get_selected_name();
+                        app.selected_window = Selected::EditStackPopup;
+                    }
                     _ => {}
                 }
                 Selected::Side => match key.code {
@@ -328,6 +340,29 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     }
                     KeyCode::Esc => {
                         app.selected_window = Selected::Main;
+                    }
+                    _ => {}
+                }
+                Selected::EditStackPopup => match key.code {
+                    KeyCode::Esc => {
+                        app.selected_window = Selected::Main;
+                        app.stack_name_input = String::new();
+                    }
+                    KeyCode::Char(c) => {
+                        if app.stack_name_input.len() < 22 {
+                            app.stack_name_input.push(c)
+                        }
+                    }
+                    KeyCode::Backspace => {
+                        app.stack_name_input.pop();
+                    }
+                    KeyCode::Enter => {
+                        if app.stack_name_input.to_string() != "" {
+                            app.edit_stack();
+                            app.get_items(); 
+                            app.stack_name_input = String::new();
+                            app.selected_window = Selected::Main;
+                        }
                     }
                     _ => {}
                 }
@@ -842,6 +877,14 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     )
         .wrap(Wrap { trim: true });
 
+    // Edit stack box 
+    let edit_stack_popup_block = Block::default()
+        .style(Style::default().fg(Color::Cyan))
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .title(Span::styled(" Edit Stack ", Style::default().fg(Color::White)))
+        .title_alignment(Alignment::Center);
+
     // Card list box 
     let card_list_block = Block::default()
         .borders(Borders::ALL)
@@ -1014,6 +1057,12 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         Selected::RevisionText => {
             f.render_widget(revision_text_box, center_col_layout[1]);
             f.render_widget(revision_text_promt, revision_text_layout[1]);
+        }
+        Selected::EditStackPopup => {
+            f.render_widget(edit_stack_popup_block, center_col_layout[1]);
+            f.render_widget(add_stack_input_outline, add_stack_popup_input_layout[1]);
+            f.render_widget(add_stack_input, add_stack_popup_layout_col_1[1]);
+            f.render_widget(add_stack_input_text, add_stack_popup_layout_col_0[1]);
         }
         _ => {}
     } 
