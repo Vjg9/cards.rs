@@ -8,6 +8,7 @@ pub struct Card {
     pub stack_id: i32,
 }
 
+// Add card
 pub fn add(conn: &Connection, stack_id: i32, title: String, text: String) {
     let card = Card {
         id: 0,
@@ -22,6 +23,7 @@ pub fn add(conn: &Connection, stack_id: i32, title: String, text: String) {
     ).unwrap();
 }
 
+// List cards
 pub fn list(conn: &Connection, stack_id: i32) -> Vec<Card> {
     let mut raw_cards = conn.prepare(format!("SELECT * FROM card WHERE stack_id={}", stack_id).as_str()).unwrap();
     let card_result = raw_cards.query_map([], |row| {
@@ -47,6 +49,7 @@ pub fn list(conn: &Connection, stack_id: i32) -> Vec<Card> {
     cards
 }
 
+// Delete card
 pub fn delete(conn: &Connection, id: i32) {
     let card = Card {
         id,
@@ -62,6 +65,7 @@ pub fn delete(conn: &Connection, id: i32) {
         .unwrap(); 
 }
 
+// Edit card
 pub fn edit(conn: &Connection, id: i32, title: String, text: String) {
     let card = Card {
         id,
