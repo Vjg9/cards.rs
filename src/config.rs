@@ -22,11 +22,8 @@ pub fn init() {
 
 pub fn get_db_file() -> String {
     let home_dir: String = env::var("HOME").unwrap();
-    println!("{}", &format!("{}/{}{}", home_dir, CONFIG_DIR, "config.json"));
     let json: String = fs::read_to_string(format!("{}/{}{}", home_dir, CONFIG_DIR, "config.json")).unwrap();
     let config: Config = serde_json::from_str(json.as_str()).unwrap(); 
-
-    println!("{}/{}", &home_dir, &config.db_file);
 
     format!("{}/{}", &home_dir, &config.db_file)
 }
