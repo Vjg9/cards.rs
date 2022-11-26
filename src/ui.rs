@@ -15,6 +15,7 @@ use tui::{
 use crate::db::{init, stack, card};
 use crate::db::stack::Stack;
 use crate::db::card::Card;
+use crate::config;
 use rusqlite::Connection;
 
 // Selected Window Enum
@@ -57,7 +58,7 @@ impl App {
        App {
             items: vec![],
             state: ListState::default(),
-            db: init("./dev.db"),
+            db: init(format!("{}", config::get_db_file()).as_str()),
             selected_window: Selected::Main,
             stack_name_input: String::new(), 
             card_title_input: String::new(),
