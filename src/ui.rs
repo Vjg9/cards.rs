@@ -15,7 +15,7 @@ use tui::{
 use crate::db::{init, stack, card};
 use crate::db::stack::Stack;
 use crate::db::card::Card;
-use crate::config;
+use crate::config; 
 use rusqlite::Connection;
 
 // Selected Window Enum
@@ -31,12 +31,19 @@ enum Selected {
     EditCard,
     RevisionTitle,
     RevisionText,
+    ConfigOptions,
 }
 
 // Card Input Focus Enum
 enum CardInputFocus {
     Title,
     Text,
+}
+
+// Config focus 
+enum ConfigFocus {
+    DbFile,
+    HighlightColor,
 }
 
 struct App {
@@ -51,6 +58,10 @@ struct App {
     cards: Vec<Card>,
     cards_state: ListState,
     revision_index: usize,
+    config_input_1: String,
+    config_input_2: String,
+    config_input_focus: ConfigFocus,
+    highlight_color: u8,
 }
 
 impl App {
@@ -67,6 +78,10 @@ impl App {
             cards: vec![],
             cards_state: ListState::default(),
             revision_index: 0,
+            config_input_1: String::new(),
+            config_input_2: String::new(),
+            config_input_focus: ConfigFocus::DbFile,
+            highlight_color: config::get_highlight_color(),
        } 
     } 
 
@@ -288,6 +303,11 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     KeyCode::Char('e') => {
                         app.stack_name_input = app.get_selected_name();
                         app.selected_window = Selected::EditStackPopup;
+                    }
+                    KeyCode::Char('c') => {
+                        app.config_input_1 = config::get_db_file_raw();
+                        app.config_input_2 = app.highlight_color.to_string();
+                        app.selected_window = Selected::ConfigOptions;
                     }
                     _ => {}
                 }
@@ -553,6 +573,51 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     }
                     _ => {}
                 }
+                Selected::ConfigOptions => match key.code {
+                    KeyCode::Backspace => {
+                        match app.config_input_focus {
+                            ConfigFocus::DbFile => {
+                                app.config_input_1.pop();
+                            }
+                            ConfigFocus::HighlightColor => {
+                                app.config_input_2.pop();
+                            }
+                        }
+                    }
+                    KeyCode::Tab => {
+                        match app.config_input_focus {
+                            ConfigFocus::DbFile => {
+                                app.config_input_focus = ConfigFocus::HighlightColor;
+                            }
+                            ConfigFocus::HighlightColor => {
+                                app.config_input_focus = ConfigFocus::DbFile;
+                            }
+                        }
+                    }
+                    KeyCode::Char(c) => {
+                        match app.config_input_focus {
+                            ConfigFocus::DbFile => {
+                                app.config_input_1.push(c);
+                            }
+                            ConfigFocus::HighlightColor => {
+                                app.config_input_2.push(c);
+                            }
+                        }
+                    }
+                    KeyCode::Enter => {
+                        config::set_config(app.config_input_1.as_str().to_string(), app.config_input_2.parse::<u8>().unwrap());
+                        app.db = init(format!("{}", config::get_db_file()).as_str()); 
+                        app.state.select(None);
+                        app.get_items();
+                        app.highlight_color = config::get_highlight_color();
+                        app.config_input_focus = ConfigFocus::DbFile;
+                        app.selected_window = Selected::Main;
+                    }
+                    KeyCode::Esc => {
+                        app.selected_window = Selected::Main;
+                    }
+                    _ => {}
+                }
             }
         }
     }
@@ -588,7 +653,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
                 .title(Span::styled(" Selected Stack ", Style::default().fg(Color::White)))
                 .title_alignment(Alignment::Center)
                 .border_type(BorderType::Rounded)
-                .style(Style::default().fg(Color::Cyan));
+                .style(Style::default().fg(Color::Indexed(app.highlight_color)));
         } 
         _ => {
             side_block = Block::default()
@@ -713,7 +778,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
                 .title(Span::styled(" Stacks ", Style::default().fg(Color::White)))
                 .title_alignment(Alignment::Center)
                 .border_type(BorderType::Rounded)
-                .style(Style::default().fg(Color::Cyan));
+                .style(Style::default().fg(Color::Indexed(app.highlight_color)));
         }
         _ => {
             main_block = Block::default()
@@ -772,7 +837,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 
     // Add Stack Popub window 
     let add_stack_popup_block = Block::default()
-        .style(Style::default().fg(Color::Cyan))
+        .style(Style::default().fg(Color::Indexed(app.highlight_color)))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .title(Span::styled(" Add Stack ", Style::default().fg(Color::White)))
@@ -828,7 +893,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 
     // Delete Stack popup 
     let delete_stack_popup_block = Block::default()
-        .style(Style::default().fg(Color::Cyan))
+        .style(Style::default().fg(Color::Indexed(app.highlight_color)))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded);
 
@@ -880,7 +945,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 
     // Add card block
     let add_card_block = Block::default()
-        .style(Style::default().fg(Color::Cyan))
+        .style(Style::default().fg(Color::Indexed(app.highlight_color)))
         .borders(Borders::ALL)
         .title(Span::styled(" Add Card ", Style::default().fg(Color::White)))
         .title_alignment(Alignment::Center)
@@ -953,7 +1018,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 
     // Edit stack box 
     let edit_stack_popup_block = Block::default()
-        .style(Style::default().fg(Color::Cyan))
+        .style(Style::default().fg(Color::Indexed(app.highlight_color)))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .title(Span::styled(" Edit Stack ", Style::default().fg(Color::White)))
@@ -962,7 +1027,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     // Card list box 
     let card_list_block = Block::default()
         .borders(Borders::ALL)
-        .style(Style::default().fg(Color::Cyan))
+        .style(Style::default().fg(Color::Indexed(app.highlight_color)))
         .title(Span::styled(" Cards ", Style::default().fg(Color::White)))
         .title_alignment(Alignment::Center)
         .border_type(BorderType::Rounded);
@@ -998,7 +1063,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let delete_card_block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .style(Style::default().fg(Color::Cyan));
+        .style(Style::default().fg(Color::Indexed(app.highlight_color)));
 
     // Delete card layout 
     let delete_card_layout = Layout::default()
@@ -1034,7 +1099,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 
     // Edit card box 
     let edit_card_block = Block::default()
-        .style(Style::default().fg(Color::Cyan))
+        .style(Style::default().fg(Color::Indexed(app.highlight_color)))
         .borders(Borders::ALL)
         .title(Span::styled(" Edit Card ", Style::default().fg(Color::White)))
         .title_alignment(Alignment::Center)
@@ -1046,7 +1111,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .border_type(BorderType::Rounded)
         .title(Span::styled(" Front ", Style::default().fg(Color::White)))
         .title_alignment(Alignment::Center)
-        .style(Style::default().fg(Color::Cyan));
+        .style(Style::default().fg(Color::Indexed(app.highlight_color)));
 
     // Revision title box layout 
     let revision_title_layout = Layout::default()
@@ -1076,7 +1141,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .border_type(BorderType::Rounded)
         .title(Span::styled(" Back ", Style::default().fg(Color::White)))
         .title_alignment(Alignment::Center)
-        .style(Style::default().fg(Color::Cyan));
+        .style(Style::default().fg(Color::Indexed(app.highlight_color)));
 
     // Revision text box layout 
     let revision_text_layout = Layout::default()
@@ -1098,6 +1163,86 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             Span::styled("No text", Style::default().fg(Color::White))
         )
     }
+
+    // Config box 
+    let config_block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .style(Style::default().fg(Color::Indexed(app.highlight_color)))
+        .title(Span::styled(" Config ", Style::default().fg(Color::White)))
+        .title_alignment(Alignment::Center);
+
+    // Config layout 
+    let config_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .vertical_margin(1)
+        .horizontal_margin(3)
+        .constraints([Constraint::Percentage(20), Constraint::Percentage(35), Constraint::Percentage(35), Constraint::Percentage(10)].as_ref())
+        .split(center_col_layout[1]);
+
+    // Config input center layout 1 
+    let config_input_center_layout_1 = Layout::default()
+        .direction(Direction::Vertical)
+        .horizontal_margin(1)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
+        .split(config_layout[1]);
+
+    // Config input center layout 2
+    let config_input_center_layout_2 = Layout::default()
+        .direction(Direction::Vertical)
+        .horizontal_margin(1)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
+        .split(config_layout[2]);
+
+    // Config input block 1 
+    let config_input_block_1 = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .style(Style::default().fg(Color::White));
+
+    // Config input block 2
+    let config_input_block_2 = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .style(Style::default().fg(Color::White));
+
+    // Config input layout 1 
+    let config_input_layout_1 = Layout::default()
+        .direction(Direction::Horizontal)
+        .horizontal_margin(1)
+        .constraints([Constraint::Percentage(40), Constraint::Percentage(70)].as_ref())
+        .split(config_input_center_layout_1[1]);
+
+    // Config input layout 2
+    let config_input_layout_2 = Layout::default()
+        .direction(Direction::Horizontal)
+        .horizontal_margin(1)
+        .constraints([Constraint::Percentage(40), Constraint::Percentage(70)].as_ref())
+        .split(config_input_center_layout_2[1]);
+
+    // Config promt 1
+    let config_promt_1 = Paragraph::new(
+        Span::styled("db_file:", Style::default().fg(Color::White).add_modifier(Modifier::BOLD))
+    )
+        .alignment(Alignment::Center);
+
+    // Config promt 2
+    let config_promt_2 = Paragraph::new(
+        Span::styled("highlight_color:", Style::default().fg(Color::White).add_modifier(Modifier::BOLD))
+    )
+        .alignment(Alignment::Center);
+
+    // Config value 1 
+    let config_value_1 = Paragraph::new(
+        Span::styled(app.config_input_1.as_str(), Style::default().fg(Color::White))
+    )
+        .alignment(Alignment::Left);
+
+    // Config value 2
+    let config_value_2 = Paragraph::new(
+        Span::styled(app.config_input_2.as_str(), Style::default().fg(Color::White))
+    )
+        .alignment(Alignment::Left);
 
     // Render Popup windows
     match app.selected_window {
@@ -1154,6 +1299,15 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             f.render_widget(add_card_text_input_promt, add_card_text_input_layout[0]);
             f.render_widget(add_card_title_input_value, add_card_title_input_layout[1]);
             f.render_widget(add_card_text_input_value, add_card_text_input_layout[1]);
+        }
+        Selected::ConfigOptions => {
+            f.render_widget(config_block, center_col_layout[1]);
+            f.render_widget(config_input_block_1, config_layout[1]);
+            f.render_widget(config_input_block_2, config_layout[2]);
+            f.render_widget(config_promt_1, config_input_layout_1[0]);
+            f.render_widget(config_promt_2, config_input_layout_2[0]);
+            f.render_widget(config_value_1, config_input_layout_1[1]);
+            f.render_widget(config_value_2, config_input_layout_2[1]);
         }
         _ => {}
     } 
