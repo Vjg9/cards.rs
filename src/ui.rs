@@ -605,13 +605,15 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                         }
                     }
                     KeyCode::Enter => {
-                        config::set_config(app.config_input_1.as_str().to_string(), app.config_input_2.parse::<u8>().unwrap());
-                        app.db = init(format!("{}", config::get_db_file()).as_str()); 
-                        app.state.select(None);
-                        app.get_items();
-                        app.highlight_color = config::get_highlight_color();
-                        app.config_input_focus = ConfigFocus::DbFile;
-                        app.selected_window = Selected::Main;
+                        if app.config_input_1 != "" && app.config_input_2 != "" {
+                            config::set_config(app.config_input_1.as_str().to_string(), app.config_input_2.parse::<u8>().unwrap());
+                            app.db = init(format!("{}", config::get_db_file()).as_str()); 
+                            app.state.select(None);
+                            app.get_items();
+                            app.highlight_color = config::get_highlight_color();
+                            app.config_input_focus = ConfigFocus::DbFile;
+                            app.selected_window = Selected::Main;
+                        }
                     }
                     KeyCode::Esc => {
                         app.selected_window = Selected::Main;
