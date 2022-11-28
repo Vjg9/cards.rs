@@ -1166,6 +1166,35 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         )
     }
 
+    // Revision cards index layout col 
+    let revision_cards_index_layout_col = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(20), Constraint::Percentage(20), Constraint::Percentage(39), Constraint::Percentage(20), Constraint::Percentage(1)])
+        .split(center_col_layout[1]);
+
+    // Revision cards index layout 
+    let revision_cards_index_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Percentage(10), Constraint::Percentage(20), Constraint::Percentage(20), Constraint::Percentage(20), Constraint::Percentage(20)])
+        .split(revision_cards_index_layout_col[3]);
+
+    // Revision cards index box 
+    let revision_cards_index_block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded);
+
+    // Revision cards index box layout 
+    let revision_cards_index_block_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(revision_cards_index_layout[1]);
+
+    // Revision cards index promt 
+    let revision_cards_index_promt = Paragraph::new(
+        Span::styled(format!("{}/{}", app.revision_index + 1, app.cards.len()), Style::default().fg(Color::White))
+    )
+        .alignment(Alignment::Center);
+
     // Config box 
     let config_block = Block::default()
         .borders(Borders::ALL)
@@ -1282,10 +1311,14 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         Selected::RevisionTitle => {
             f.render_widget(revision_title_box, center_col_layout[1]);
             f.render_widget(revision_title_promt, revision_title_layout[1]);
+            f.render_widget(revision_cards_index_block, revision_cards_index_layout[1]);
+            f.render_widget(revision_cards_index_promt, revision_cards_index_block_layout[1]);
         }
         Selected::RevisionText => {
             f.render_widget(revision_text_box, center_col_layout[1]);
             f.render_widget(revision_text_promt, revision_text_layout[1]);
+            f.render_widget(revision_cards_index_block, revision_cards_index_layout[1]);
+            f.render_widget(revision_cards_index_promt, revision_cards_index_block_layout[1]);
         }
         Selected::EditStackPopup => {
             f.render_widget(edit_stack_popup_block, center_col_layout[1]);
