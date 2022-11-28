@@ -1,22 +1,22 @@
+use crate::config;
+use crate::db::card::Card;
+use crate::db::stack::Stack;
+use crate::db::{card, init, stack};
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use rusqlite::Connection;
 use std::{error::Error, io};
 use tui::{
     backend::{Backend, CrosstermBackend},
     layout::{Alignment, Constraint, Direction, Layout},
-    style::{Style, Color, Modifier},
+    style::{Color, Modifier, Style},
     text::Span,
-    widgets::{Block, BorderType, Borders, List, ListItem, ListState, Table, Row, Paragraph, Wrap},
-    Frame, Terminal
+    widgets::{Block, BorderType, Borders, List, ListItem, ListState, Paragraph, Row, Table, Wrap},
+    Frame, Terminal,
 };
-use crate::db::{init, stack, card};
-use crate::db::stack::Stack;
-use crate::db::card::Card;
-use crate::config; 
-use rusqlite::Connection;
 
 // Selected Window Enum
 enum Selected {
@@ -40,7 +40,7 @@ enum CardInputFocus {
     Text,
 }
 
-// Config focus 
+// Config focus
 enum ConfigFocus {
     DbFile,
     HighlightColor,
@@ -66,12 +66,12 @@ struct App {
 
 impl App {
     fn new() -> App {
-       App {
+        App {
             items: vec![],
             state: ListState::default(),
             db: init(format!("{}", config::get_db_file()).as_str()),
             selected_window: Selected::Main,
-            stack_name_input: String::new(), 
+            stack_name_input: String::new(),
             card_title_input: String::new(),
             card_text_input: String::new(),
             card_input_focus: CardInputFocus::Title,
@@ -82,32 +82,33 @@ impl App {
             config_input_2: String::new(),
             config_input_focus: ConfigFocus::DbFile,
             highlight_color: config::get_highlight_color(),
-       } 
-    } 
+        }
+    }
 
     // Edit card
     fn edit_card(&mut self) {
         let id = self.get_selected_card_id();
         let title = &self.card_title_input;
         let text = &self.card_text_input;
-        card::edit(self.db.as_ref().unwrap(), id, title.to_string(), text.to_string())
+        card::edit(
+            self.db.as_ref().unwrap(),
+            id,
+            title.to_string(),
+            text.to_string(),
+        )
     }
 
-    // Delete card 
+    // Delete card
     fn delete_card(&mut self) {
         let id = self.get_selected_card_id();
         card::delete(self.db.as_ref().unwrap(), id);
     }
 
-    // Get selected card id 
+    // Get selected card id
     fn get_selected_card_id(&mut self) -> i32 {
         let _i = match self.cards_state.selected() {
-            Some(i) => {
-                return self.cards[i].id
-            },
-            None => {
-                return 0
-            }
+            Some(i) => return self.cards[i].id,
+            None => return 0,
         };
     }
 
@@ -166,13 +167,13 @@ impl App {
     fn add_stack(&mut self, name: String) {
         stack::add(self.db.as_ref().unwrap(), name);
     }
-    
+
     // Delete stack
     fn delete_stack(&mut self, id: i32) {
         stack::delete(self.db.as_ref().unwrap(), id);
     }
 
-    // Edit stack 
+    // Edit stack
     fn edit_stack(&mut self) {
         let id = self.get_selected_id();
         let name = &self.stack_name_input;
@@ -182,24 +183,16 @@ impl App {
     // Get id from selected stack
     fn get_selected_id(&mut self) -> i32 {
         let _i = match self.state.selected() {
-            Some(i) => {
-                return self.items[i].id
-            },
-            None => {
-                return 0
-            }
+            Some(i) => return self.items[i].id,
+            None => return 0,
         };
     }
 
     // Get name from selected stack
     fn get_selected_name(&mut self) -> String {
         let _i = match self.state.selected() {
-            Some(i) => {
-                return self.items[i].name.to_string()
-            },
-            None => {
-                return "".to_string()
-            }
+            Some(i) => return self.items[i].name.to_string(),
+            None => return "".to_string(),
         };
     }
 
@@ -236,7 +229,7 @@ impl App {
             self.state.select(Some(i));
         }
     }
-} 
+}
 
 // Run the ui
 pub fn run_ui() -> Result<(), Box<dyn Error>> {
@@ -250,7 +243,6 @@ pub fn run_ui() -> Result<(), Box<dyn Error>> {
     // create app and run it
     let app = App::new();
     let res = run_app(&mut terminal, app);
-
 
     // restore terminal
     disable_raw_mode()?;
@@ -280,26 +272,27 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
         if let Event::Key(key) = event::read()? {
             match app.selected_window {
                 Selected::Main => match key.code {
-                    KeyCode::Char('q') => return Ok(()), 
+                    KeyCode::Char('q') => return Ok(()),
                     KeyCode::Up => app.next(),
                     KeyCode::Down => app.back(),
                     KeyCode::Tab => {
                         app.selected_window = Selected::Side;
-                    },
+                    }
                     KeyCode::Char('k') => app.next(),
                     KeyCode::Char('j') => app.back(),
                     KeyCode::Char('a') => {
                         app.state.select(None);
                         app.selected_window = Selected::StackNameInput;
-                    },
-                    KeyCode::Char('d') => {
-                        app.selected_window = Selected::DeleteStackPopup; }, KeyCode::Enter => { match app.state.selected() {
-                            Some(_i) => {
-                                app.selected_window = Selected::Side;
-                            }
-                            None => {}
-                        }
                     }
+                    KeyCode::Char('d') => {
+                        app.selected_window = Selected::DeleteStackPopup;
+                    }
+                    KeyCode::Enter => match app.state.selected() {
+                        Some(_i) => {
+                            app.selected_window = Selected::Side;
+                        }
+                        None => {}
+                    },
                     KeyCode::Char('e') => {
                         app.stack_name_input = app.get_selected_name();
                         app.selected_window = Selected::EditStackPopup;
@@ -310,15 +303,13 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                         app.selected_window = Selected::ConfigOptions;
                     }
                     _ => {}
-                }
+                },
                 Selected::Side => match key.code {
-                    KeyCode::Char('q') => return Ok(()), 
+                    KeyCode::Char('q') => return Ok(()),
                     KeyCode::Tab => {
                         app.selected_window = Selected::Main;
-                    },
-                    KeyCode::Char('a') => {
-                        app.selected_window = Selected::AddCard
                     }
+                    KeyCode::Char('a') => app.selected_window = Selected::AddCard,
                     KeyCode::Char('l') => {
                         app.list_cards();
                         if app.cards.len() > 0 {
@@ -336,21 +327,21 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                         app.selected_window = Selected::Main;
                     }
                     _ => {}
-                }
+                },
                 Selected::StackNameInput => match key.code {
                     KeyCode::Char(c) => {
                         if app.stack_name_input.len() < 22 {
                             app.stack_name_input.push(c)
                         }
-                    },
+                    }
                     KeyCode::Esc => {
                         app.stack_name_input = String::new();
                         app.selected_window = Selected::Main;
-                    },
+                    }
                     KeyCode::Enter => {
                         if app.stack_name_input.to_string() != "" {
                             app.add_stack(app.stack_name_input.to_string());
-                            app.get_items(); 
+                            app.get_items();
                             app.stack_name_input = String::new();
                             app.selected_window = Selected::Main;
                         }
@@ -359,7 +350,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                         app.stack_name_input.pop();
                     }
                     _ => {}
-                }
+                },
                 Selected::DeleteStackPopup => match key.code {
                     KeyCode::Enter => {
                         let id = app.get_selected_id();
@@ -372,7 +363,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                         app.selected_window = Selected::Main;
                     }
                     _ => {}
-                }
+                },
                 Selected::EditStackPopup => match key.code {
                     KeyCode::Esc => {
                         app.selected_window = Selected::Main;
@@ -389,80 +380,71 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     KeyCode::Enter => {
                         if app.stack_name_input.to_string() != "" {
                             app.edit_stack();
-                            app.get_items(); 
+                            app.get_items();
                             app.stack_name_input = String::new();
                             app.selected_window = Selected::Main;
                         }
                     }
                     _ => {}
-                }
+                },
                 Selected::AddCard => match key.code {
                     KeyCode::Esc => {
                         app.selected_window = Selected::Side;
                         app.card_text_input = String::new();
                         app.card_title_input = String::new();
                     }
-                    KeyCode::Tab => {
-                        match &app.card_input_focus {
-                            CardInputFocus::Title => {
-                                app.card_input_focus = CardInputFocus::Text;
-                            }
-                            CardInputFocus::Text => {
-                                app.card_input_focus = CardInputFocus::Title;
-                            }
+                    KeyCode::Tab => match &app.card_input_focus {
+                        CardInputFocus::Title => {
+                            app.card_input_focus = CardInputFocus::Text;
                         }
-                    }
+                        CardInputFocus::Text => {
+                            app.card_input_focus = CardInputFocus::Title;
+                        }
+                    },
                     KeyCode::Enter => {
-                        if app.card_text_input != "".to_string() && app.card_title_input != "".to_string() {
-                            app.add_card(app.card_title_input.to_string(), app.card_text_input.to_string());
+                        if app.card_text_input != "".to_string()
+                            && app.card_title_input != "".to_string()
+                        {
+                            app.add_card(
+                                app.card_title_input.to_string(),
+                                app.card_text_input.to_string(),
+                            );
                             app.selected_window = Selected::Side;
                             app.card_text_input = String::new();
                             app.card_title_input = String::new();
                             app.card_input_focus = CardInputFocus::Title;
                         }
                     }
-                    KeyCode::Backspace => {
-                        match &app.card_input_focus {
-                            CardInputFocus::Title => {
-                                app.card_title_input.pop();
-                            }
-                            CardInputFocus::Text => {
-                                app.card_text_input.pop();
+                    KeyCode::Backspace => match &app.card_input_focus {
+                        CardInputFocus::Title => {
+                            app.card_title_input.pop();
+                        }
+                        CardInputFocus::Text => {
+                            app.card_text_input.pop();
+                        }
+                    },
+                    KeyCode::Char(c) => match &app.card_input_focus {
+                        CardInputFocus::Title => {
+                            if app.card_title_input.len() < 30 {
+                                app.card_title_input.push(c)
                             }
                         }
-                    }
-                    KeyCode::Char(c) => {
-                        match &app.card_input_focus {
-                            CardInputFocus::Title => {
-                                if app.card_title_input.len() < 30 {
-                                    app.card_title_input.push(c)
-                                }
-                            }
-                            CardInputFocus::Text => {
-                                if app.card_text_input.len() < 100 {
-                                    app.card_text_input.push(c)
-                                }
+                        CardInputFocus::Text => {
+                            if app.card_text_input.len() < 100 {
+                                app.card_text_input.push(c)
                             }
                         }
-                    }
+                    },
                     _ => {}
-                }
+                },
                 Selected::CardList => match key.code {
                     KeyCode::Esc => {
                         app.selected_window = Selected::Side;
                     }
-                    KeyCode::Char('j') => {
-                        app.next_card()
-                    }
-                    KeyCode::Char('k') => {
-                        app.back_card()
-                    }
-                    KeyCode::Up => {
-                        app.back_card()
-                    }
-                    KeyCode::Down => {
-                        app.next_card()
-                    }
+                    KeyCode::Char('j') => app.next_card(),
+                    KeyCode::Char('k') => app.back_card(),
+                    KeyCode::Up => app.back_card(),
+                    KeyCode::Down => app.next_card(),
                     KeyCode::Char('d') => {
                         if app.cards.len() > 0 {
                             app.selected_window = Selected::DeleteCard;
@@ -481,7 +463,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                         }
                     }
                     _ => {}
-                }
+                },
                 Selected::DeleteCard => match key.code {
                     KeyCode::Esc => {
                         app.selected_window = Selected::CardList;
@@ -492,25 +474,25 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                         app.selected_window = Selected::CardList;
                     }
                     _ => {}
-                }
+                },
                 Selected::EditCard => match key.code {
                     KeyCode::Esc => {
                         app.selected_window = Selected::CardList;
                         app.card_text_input = String::new();
                         app.card_title_input = String::new();
                     }
-                    KeyCode::Tab => {
-                        match &app.card_input_focus {
-                            CardInputFocus::Title => {
-                                app.card_input_focus = CardInputFocus::Text;
-                            }
-                            CardInputFocus::Text => {
-                                app.card_input_focus = CardInputFocus::Title;
-                            }
+                    KeyCode::Tab => match &app.card_input_focus {
+                        CardInputFocus::Title => {
+                            app.card_input_focus = CardInputFocus::Text;
                         }
-                    }
+                        CardInputFocus::Text => {
+                            app.card_input_focus = CardInputFocus::Title;
+                        }
+                    },
                     KeyCode::Enter => {
-                        if app.card_text_input != "".to_string() && app.card_title_input != "".to_string() {
+                        if app.card_text_input != "".to_string()
+                            && app.card_title_input != "".to_string()
+                        {
                             app.edit_card();
                             app.card_text_input = String::new();
                             app.card_title_input = String::new();
@@ -519,32 +501,28 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                             app.selected_window = Selected::CardList;
                         }
                     }
-                    KeyCode::Backspace => {
-                        match &app.card_input_focus {
-                            CardInputFocus::Title => {
-                                app.card_title_input.pop();
-                            }
-                            CardInputFocus::Text => {
-                                app.card_text_input.pop();
+                    KeyCode::Backspace => match &app.card_input_focus {
+                        CardInputFocus::Title => {
+                            app.card_title_input.pop();
+                        }
+                        CardInputFocus::Text => {
+                            app.card_text_input.pop();
+                        }
+                    },
+                    KeyCode::Char(c) => match &app.card_input_focus {
+                        CardInputFocus::Title => {
+                            if app.card_title_input.len() < 30 {
+                                app.card_title_input.push(c)
                             }
                         }
-                    }
-                    KeyCode::Char(c) => {
-                        match &app.card_input_focus {
-                            CardInputFocus::Title => {
-                                if app.card_title_input.len() < 30 {
-                                    app.card_title_input.push(c)
-                                }
-                            }
-                            CardInputFocus::Text => {
-                                if app.card_text_input.len() < 100 {
-                                    app.card_text_input.push(c)
-                                }
+                        CardInputFocus::Text => {
+                            if app.card_text_input.len() < 100 {
+                                app.card_text_input.push(c)
                             }
                         }
-                    }
+                    },
                     _ => {}
-                }
+                },
                 Selected::RevisionTitle => match key.code {
                     KeyCode::Esc => {
                         app.selected_window = Selected::Side;
@@ -553,7 +531,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                         app.selected_window = Selected::RevisionText;
                     }
                     _ => {}
-                }
+                },
                 Selected::RevisionText => match key.code {
                     KeyCode::Esc => {
                         if app.revision_index == app.cards.len() - 1 {
@@ -572,42 +550,39 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                         }
                     }
                     _ => {}
-                }
+                },
                 Selected::ConfigOptions => match key.code {
-                    KeyCode::Backspace => {
-                        match app.config_input_focus {
-                            ConfigFocus::DbFile => {
-                                app.config_input_1.pop();
-                            }
-                            ConfigFocus::HighlightColor => {
-                                app.config_input_2.pop();
-                            }
+                    KeyCode::Backspace => match app.config_input_focus {
+                        ConfigFocus::DbFile => {
+                            app.config_input_1.pop();
                         }
-                    }
-                    KeyCode::Tab => {
-                        match app.config_input_focus {
-                            ConfigFocus::DbFile => {
-                                app.config_input_focus = ConfigFocus::HighlightColor;
-                            }
-                            ConfigFocus::HighlightColor => {
-                                app.config_input_focus = ConfigFocus::DbFile;
-                            }
+                        ConfigFocus::HighlightColor => {
+                            app.config_input_2.pop();
                         }
-                    }
-                    KeyCode::Char(c) => {
-                        match app.config_input_focus {
-                            ConfigFocus::DbFile => {
-                                app.config_input_1.push(c);
-                            }
-                            ConfigFocus::HighlightColor => {
-                                app.config_input_2.push(c);
-                            }
+                    },
+                    KeyCode::Tab => match app.config_input_focus {
+                        ConfigFocus::DbFile => {
+                            app.config_input_focus = ConfigFocus::HighlightColor;
                         }
-                    }
+                        ConfigFocus::HighlightColor => {
+                            app.config_input_focus = ConfigFocus::DbFile;
+                        }
+                    },
+                    KeyCode::Char(c) => match app.config_input_focus {
+                        ConfigFocus::DbFile => {
+                            app.config_input_1.push(c);
+                        }
+                        ConfigFocus::HighlightColor => {
+                            app.config_input_2.push(c);
+                        }
+                    },
                     KeyCode::Enter => {
                         if app.config_input_1 != "" && app.config_input_2 != "" {
-                            config::set_config(app.config_input_1.as_str().to_string(), app.config_input_2.parse::<u8>().unwrap());
-                            app.db = init(format!("{}", config::get_db_file()).as_str()); 
+                            config::set_config(
+                                app.config_input_1.as_str().to_string(),
+                                app.config_input_2.parse::<u8>().unwrap(),
+                            );
+                            app.db = init(format!("{}", config::get_db_file()).as_str());
                             app.state.select(None);
                             app.get_items();
                             app.highlight_color = config::get_highlight_color();
@@ -619,7 +594,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                         app.selected_window = Selected::Main;
                     }
                     _ => {}
-                }
+                },
             }
         }
     }
@@ -627,7 +602,6 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
 
 // Ui code
 fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
-
     // Layout for Main and Side blocks
     let block_layout = Layout::default()
         .direction(Direction::Horizontal)
@@ -636,14 +610,28 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .constraints([Constraint::Percentage(70), Constraint::Percentage(30)].as_ref())
         .split(f.size());
 
-    // Center Layout for pupup window 
+    // Center Layout for pupup window
     let center_row_layout = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(33), Constraint::Percentage(33), Constraint::Percentage(33)].as_ref())
+        .constraints(
+            [
+                Constraint::Percentage(33),
+                Constraint::Percentage(33),
+                Constraint::Percentage(33),
+            ]
+            .as_ref(),
+        )
         .split(f.size());
     let center_col_layout = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Percentage(33), Constraint::Percentage(33), Constraint::Percentage(33)].as_ref())
+        .constraints(
+            [
+                Constraint::Percentage(33),
+                Constraint::Percentage(33),
+                Constraint::Percentage(33),
+            ]
+            .as_ref(),
+        )
         .split(center_row_layout[1]);
 
     // Draw Side block
@@ -652,38 +640,62 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         Selected::Side => {
             side_block = Block::default()
                 .borders(Borders::ALL)
-                .title(Span::styled(" Selected Stack ", Style::default().fg(Color::White)))
+                .title(Span::styled(
+                    " Selected Stack ",
+                    Style::default().fg(Color::White),
+                ))
                 .title_alignment(Alignment::Center)
                 .border_type(BorderType::Rounded)
                 .style(Style::default().fg(Color::Indexed(app.highlight_color)));
-        } 
+        }
         _ => {
             side_block = Block::default()
                 .borders(Borders::ALL)
-                .title(Span::styled(" Selected Stack ", Style::default().fg(Color::White)))
+                .title(Span::styled(
+                    " Selected Stack ",
+                    Style::default().fg(Color::White),
+                ))
                 .title_alignment(Alignment::Center)
                 .border_type(BorderType::Rounded)
                 .style(Style::default().fg(Color::White));
         }
     }
     f.render_widget(side_block, block_layout[1]);
-    
+
     // Side block layout
     let side_block_layout = Layout::default()
         .direction(Direction::Vertical)
-        .horizontal_margin(6) .vertical_margin(2)
-        .constraints([Constraint::Percentage(15), Constraint::Percentage(12), Constraint::Percentage(5), Constraint::Percentage(65), Constraint::Percentage(2)].as_ref())
+        .horizontal_margin(6)
+        .vertical_margin(2)
+        .constraints(
+            [
+                Constraint::Percentage(15),
+                Constraint::Percentage(12),
+                Constraint::Percentage(5),
+                Constraint::Percentage(65),
+                Constraint::Percentage(2),
+            ]
+            .as_ref(),
+        )
         .split(block_layout[1]);
 
-    // Side block name layout 
+    // Side block name layout
     let side_block_name_layout = Layout::default()
         .direction(Direction::Horizontal)
         .horizontal_margin(3)
         .vertical_margin(2)
-        .constraints([Constraint::Percentage(30), Constraint::Percentage(43), Constraint::Percentage(13), Constraint::Percentage(1)].as_ref())
+        .constraints(
+            [
+                Constraint::Percentage(30),
+                Constraint::Percentage(43),
+                Constraint::Percentage(13),
+                Constraint::Percentage(1),
+            ]
+            .as_ref(),
+        )
         .split(side_block_layout[1]);
 
-    // Side block selected stack name box 
+    // Side block selected stack name box
     let side_block_name_box = Block::default()
         .style(Style::default().fg(Color::White))
         .borders(Borders::ALL)
@@ -692,7 +704,10 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     // Side block selected stack name
     let side_block_name = Block::default()
         .style(Style::default().fg(Color::White))
-        .title(Span::styled(app.get_selected_name(), Style::default().add_modifier(Modifier::BOLD)))
+        .title(Span::styled(
+            app.get_selected_name(),
+            Style::default().add_modifier(Modifier::BOLD),
+        ))
         .title_alignment(Alignment::Center);
 
     // Side block options layout
@@ -700,7 +715,15 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .direction(Direction::Vertical)
         .horizontal_margin(4)
         .vertical_margin(2)
-        .constraints([Constraint::Percentage(25), Constraint::Percentage(25), Constraint::Percentage(25), Constraint::Percentage(25)].as_ref())
+        .constraints(
+            [
+                Constraint::Percentage(25),
+                Constraint::Percentage(25),
+                Constraint::Percentage(25),
+                Constraint::Percentage(25),
+            ]
+            .as_ref(),
+        )
         .split(side_block_layout[3]);
 
     // Side block option blocks
@@ -739,13 +762,22 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 
     // Side block option text
     let side_block_name_1 = Block::default()
-        .title(Span::styled("a: Add Card", Style::default().add_modifier(Modifier::BOLD)))
+        .title(Span::styled(
+            "a: Add Card",
+            Style::default().add_modifier(Modifier::BOLD),
+        ))
         .title_alignment(Alignment::Center);
     let side_block_name_2 = Block::default()
-        .title(Span::styled("s: Start Revision", Style::default().add_modifier(Modifier::BOLD)))
+        .title(Span::styled(
+            "s: Start Revision",
+            Style::default().add_modifier(Modifier::BOLD),
+        ))
         .title_alignment(Alignment::Center);
     let side_block_name_3 = Block::default()
-        .title(Span::styled("l: List Cards", Style::default().add_modifier(Modifier::BOLD)))
+        .title(Span::styled(
+            "l: List Cards",
+            Style::default().add_modifier(Modifier::BOLD),
+        ))
         .title_alignment(Alignment::Center);
 
     // Render side block widgets
@@ -759,7 +791,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             f.render_widget(side_block_name_1, side_block_options_text_layout_1[1]);
             f.render_widget(side_block_name_2, side_block_options_text_layout_2[1]);
             f.render_widget(side_block_name_3, side_block_options_text_layout_3[1]);
-        },
+        }
         None => {}
     }
 
@@ -793,7 +825,6 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     }
     f.render_widget(main_block, block_layout[0]);
 
-
     // Stacks
     let stacks: Vec<ListItem> = app
         .items
@@ -804,23 +835,22 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         })
         .collect();
 
-    // Render Stacks in a list 
-    let stacks = List::new(stacks)
-        .highlight_style(
-            Style::default()
-                .bg(Color::White)
-                .fg(Color::Black)
-                .add_modifier(Modifier::BOLD),
-        );
+    // Render Stacks in a list
+    let stacks = List::new(stacks).highlight_style(
+        Style::default()
+            .bg(Color::White)
+            .fg(Color::Black)
+            .add_modifier(Modifier::BOLD),
+    );
     f.render_stateful_widget(stacks, main_block_layout[0], &mut app.state);
 
     // Render Main block options window
     let main_block_options = Block::default()
-            .borders(Borders::ALL)
-            .title(" Options ")
-            .title_alignment(Alignment::Center)
-            .style(Style::default().fg(Color::White))
-            .border_type(BorderType::Rounded);
+        .borders(Borders::ALL)
+        .title(" Options ")
+        .title_alignment(Alignment::Center)
+        .style(Style::default().fg(Color::White))
+        .border_type(BorderType::Rounded);
     f.render_widget(main_block_options, main_block_layout[1]);
 
     let main_block_options_layout = Layout::default()
@@ -830,27 +860,43 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
         .split(main_block_layout[1]);
 
-    // Render Options 
-    let options = Table::new(vec![
-            Row::new(vec!["a: Add new", "d: Delete", "e: Edit", "<j, k>: up, down"]).style(Style::default()),
-        ])
-        .widths(&[Constraint::Percentage(25), Constraint::Percentage(25), Constraint::Percentage(25), Constraint::Percentage(25)]);
+    // Render Options
+    let options = Table::new(vec![Row::new(vec![
+        "a: Add new",
+        "d: Delete",
+        "e: Edit",
+        "<j, k>: up, down",
+    ])
+    .style(Style::default())])
+    .widths(&[
+        Constraint::Percentage(25),
+        Constraint::Percentage(25),
+        Constraint::Percentage(25),
+        Constraint::Percentage(25),
+    ]);
     f.render_widget(options, main_block_options_layout[1]);
 
-    // Add Stack Popub window 
+    // Add Stack Popub window
     let add_stack_popup_block = Block::default()
         .style(Style::default().fg(Color::Indexed(app.highlight_color)))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .title(Span::styled(" Add Stack ", Style::default().fg(Color::White)))
+        .title(Span::styled(
+            " Add Stack ",
+            Style::default().fg(Color::White),
+        ))
         .title_alignment(Alignment::Center);
 
-    // Add Stack Popup Layout 
+    // Add Stack Popup Layout
     let add_stack_popup_layout_row = Layout::default()
         .direction(Direction::Horizontal)
         .horizontal_margin(3)
         .vertical_margin(1)
-        .constraints([Constraint::Percentage(33), Constraint::Percentage(50), Constraint::Percentage(17)])
+        .constraints([
+            Constraint::Percentage(33),
+            Constraint::Percentage(50),
+            Constraint::Percentage(17),
+        ])
         .split(center_col_layout[1]);
     let add_stack_popup_layout_col_1 = Layout::default()
         .direction(Direction::Vertical)
@@ -865,45 +911,47 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .constraints([Constraint::Percentage(45), Constraint::Percentage(55)])
         .split(add_stack_popup_layout_row[0]);
 
-    // Add Stack Input box layout 
+    // Add Stack Input box layout
     let add_stack_popup_input_layout = Layout::default()
         .direction(Direction::Vertical)
         .horizontal_margin(6)
         .vertical_margin(2)
-        .constraints([Constraint::Percentage(33), Constraint::Percentage(42), Constraint::Percentage(33)])
+        .constraints([
+            Constraint::Percentage(33),
+            Constraint::Percentage(42),
+            Constraint::Percentage(33),
+        ])
         .split(center_col_layout[1]);
 
-    // Add Stack Input Text 
-    let add_stack_input = Paragraph::new(
-        Span::from(app.stack_name_input.as_ref())
-    )
+    // Add Stack Input Text
+    let add_stack_input = Paragraph::new(Span::from(app.stack_name_input.as_ref()))
         .style(Style::default().fg(Color::White))
         .alignment(Alignment::Left);
 
     // Add Stack "name:" text
-    let add_stack_input_text = Paragraph::new(
-        Span::from("name:")
-    )
-        .style(Style::default().fg(Color::White).add_modifier(Modifier::BOLD))
+    let add_stack_input_text = Paragraph::new(Span::from("name:"))
+        .style(
+            Style::default()
+                .fg(Color::White)
+                .add_modifier(Modifier::BOLD),
+        )
         .alignment(Alignment::Right);
 
     // Add Stack input outline
     let add_stack_input_outline = Block::default()
-        .style(Style::default().fg(Color::White)) 
+        .style(Style::default().fg(Color::White))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded);
 
-    // Delete Stack popup 
+    // Delete Stack popup
     let delete_stack_popup_block = Block::default()
         .style(Style::default().fg(Color::Indexed(app.highlight_color)))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded);
 
     // Delete Stack question
-    let delete_stack_popup_text = Paragraph::new(
-        Span::from("Are you Sure?")
-    )
-        .style(Style::default().fg(Color::White)) 
+    let delete_stack_popup_text = Paragraph::new(Span::from("Are you Sure?"))
+        .style(Style::default().fg(Color::White))
         .alignment(Alignment::Center);
 
     // Delete Stack Layout
@@ -911,49 +959,66 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .direction(Direction::Horizontal)
         .horizontal_margin(3)
         .vertical_margin(1)
-        .constraints([Constraint::Percentage(5), Constraint::Percentage(90), Constraint::Percentage(5)])
+        .constraints([
+            Constraint::Percentage(5),
+            Constraint::Percentage(90),
+            Constraint::Percentage(5),
+        ])
         .split(center_col_layout[1]);
     let delete_stack_popup_layout_col_1 = Layout::default()
         .direction(Direction::Vertical)
         .horizontal_margin(3)
         .vertical_margin(1)
-        .constraints([Constraint::Percentage(25), Constraint::Percentage(30), Constraint::Percentage(30), Constraint::Percentage(15)])
+        .constraints([
+            Constraint::Percentage(25),
+            Constraint::Percentage(30),
+            Constraint::Percentage(30),
+            Constraint::Percentage(15),
+        ])
         .split(delete_stack_popup_layout_row[1]);
 
     // Delete Stack Button
     let delete_stack_button = Block::default()
-        .style(Style::default().fg(Color::White)) 
+        .style(Style::default().fg(Color::White))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded);
 
-    // Delete Stack Button Layout 
+    // Delete Stack Button Layout
     let delete_stack_button_layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
         .split(delete_stack_popup_layout_col_1[2]);
 
-    // Delete Stack Button text 
-    let delete_stack_button_text = Paragraph::new(
-        Span::from("Yes")
-    )
+    // Delete Stack Button text
+    let delete_stack_button_text = Paragraph::new(Span::from("Yes"))
         .alignment(Alignment::Center)
         .style(Style::default().add_modifier(Modifier::BOLD));
 
-    // Add card center layout 
+    // Add card center layout
     let add_card_center_layout = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Percentage(25), Constraint::Percentage(49), Constraint::Percentage(25)].as_ref())
+        .constraints(
+            [
+                Constraint::Percentage(25),
+                Constraint::Percentage(49),
+                Constraint::Percentage(25),
+            ]
+            .as_ref(),
+        )
         .split(center_row_layout[1]);
 
     // Add card block
     let add_card_block = Block::default()
         .style(Style::default().fg(Color::Indexed(app.highlight_color)))
         .borders(Borders::ALL)
-        .title(Span::styled(" Add Card ", Style::default().fg(Color::White)))
+        .title(Span::styled(
+            " Add Card ",
+            Style::default().fg(Color::White),
+        ))
         .title_alignment(Alignment::Center)
         .border_type(BorderType::Rounded);
 
-    // Add card layout 
+    // Add card layout
     let add_card_layout = Layout::default()
         .direction(Direction::Vertical)
         .vertical_margin(3)
@@ -967,9 +1032,9 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded);
 
-    // Add card text input box 
+    // Add card text input box
     let add_card_text_input_box = Block::default()
-        .style(Style::default().fg(Color::White)) 
+        .style(Style::default().fg(Color::White))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded);
 
@@ -996,37 +1061,32 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .split(add_card_text_input_promt_layout[1]);
 
     // Add card title input box promt
-    let add_card_title_input_promt = Paragraph::new(
-        Span::from("title: ")
-    )
-        .style(Style::default().add_modifier(Modifier::BOLD));
+    let add_card_title_input_promt =
+        Paragraph::new(Span::from("title: ")).style(Style::default().add_modifier(Modifier::BOLD));
 
     // Add card title input box value
-    let add_card_title_input_value = Paragraph::new(
-        Span::from(app.card_title_input.as_ref())
-    );
+    let add_card_title_input_value = Paragraph::new(Span::from(app.card_title_input.as_ref()));
 
     // Add card text input box promt
-    let add_card_text_input_promt = Paragraph::new(
-        Span::from("text: ")
-    )
-        .style(Style::default().add_modifier(Modifier::BOLD));
+    let add_card_text_input_promt =
+        Paragraph::new(Span::from("text: ")).style(Style::default().add_modifier(Modifier::BOLD));
 
     // Add card text input box value
-    let add_card_text_input_value = Paragraph::new(
-        Span::from(app.card_text_input.as_ref())
-    )
-        .wrap(Wrap { trim: true });
+    let add_card_text_input_value =
+        Paragraph::new(Span::from(app.card_text_input.as_ref())).wrap(Wrap { trim: true });
 
-    // Edit stack box 
+    // Edit stack box
     let edit_stack_popup_block = Block::default()
         .style(Style::default().fg(Color::Indexed(app.highlight_color)))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .title(Span::styled(" Edit Stack ", Style::default().fg(Color::White)))
+        .title(Span::styled(
+            " Edit Stack ",
+            Style::default().fg(Color::White),
+        ))
         .title_alignment(Alignment::Center);
 
-    // Card list box 
+    // Card list box
     let card_list_block = Block::default()
         .borders(Borders::ALL)
         .style(Style::default().fg(Color::Indexed(app.highlight_color)))
@@ -1034,7 +1094,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .title_alignment(Alignment::Center)
         .border_type(BorderType::Rounded);
 
-    // Card list layout 
+    // Card list layout
     let card_list_layout = Layout::default()
         .direction(Direction::Vertical)
         .vertical_margin(2)
@@ -1042,7 +1102,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .constraints([Constraint::Percentage(100)])
         .split(center_col_layout[1]);
 
-    // Card list list 
+    // Card list list
     let cards: Vec<ListItem> = app
         .cards
         .iter()
@@ -1053,61 +1113,68 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .collect();
 
     // Render Cards in a list
-    let cards = List::new(cards)
-        .highlight_style(
-            Style::default()
-                .bg(Color::White)
-                .fg(Color::Black)
-                .add_modifier(Modifier::BOLD),
-        );
+    let cards = List::new(cards).highlight_style(
+        Style::default()
+            .bg(Color::White)
+            .fg(Color::Black)
+            .add_modifier(Modifier::BOLD),
+    );
 
-    // Delete card box 
+    // Delete card box
     let delete_card_block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .style(Style::default().fg(Color::Indexed(app.highlight_color)));
 
-    // Delete card layout 
+    // Delete card layout
     let delete_card_layout = Layout::default()
         .direction(Direction::Vertical)
         .vertical_margin(2)
         .horizontal_margin(3)
-        .constraints([Constraint::Percentage(25), Constraint::Percentage(30), Constraint::Percentage(30), Constraint::Percentage(15)])
+        .constraints([
+            Constraint::Percentage(25),
+            Constraint::Percentage(30),
+            Constraint::Percentage(30),
+            Constraint::Percentage(15),
+        ])
         .split(center_col_layout[1]);
 
-    // Delete card promt 
-    let delete_card_promt = Paragraph::new(
-        Span::styled("Are you sure?", Style::default().fg(Color::White))
-    )
-        .alignment(Alignment::Center);
+    // Delete card promt
+    let delete_card_promt = Paragraph::new(Span::styled(
+        "Are you sure?",
+        Style::default().fg(Color::White),
+    ))
+    .alignment(Alignment::Center);
 
-    // Delete card button box 
+    // Delete card button box
     let delete_card_button_block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .style(Style::default().fg(Color::White));
 
-    // Delete card button layout 
+    // Delete card button layout
     let delete_card_button_layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
         .split(delete_card_layout[2]);
 
-    // Delete card button text 
-    let delete_card_button_text = Paragraph::new(
-        Span::styled("Yes", Style::default().fg(Color::White))
-    )
-        .alignment(Alignment::Center);
+    // Delete card button text
+    let delete_card_button_text =
+        Paragraph::new(Span::styled("Yes", Style::default().fg(Color::White)))
+            .alignment(Alignment::Center);
 
-    // Edit card box 
+    // Edit card box
     let edit_card_block = Block::default()
         .style(Style::default().fg(Color::Indexed(app.highlight_color)))
         .borders(Borders::ALL)
-        .title(Span::styled(" Edit Card ", Style::default().fg(Color::White)))
+        .title(Span::styled(
+            " Edit Card ",
+            Style::default().fg(Color::White),
+        ))
         .title_alignment(Alignment::Center)
         .border_type(BorderType::Rounded);
 
-    // Revision title box 
+    // Revision title box
     let revision_title_box = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
@@ -1115,7 +1182,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .title_alignment(Alignment::Center)
         .style(Style::default().fg(Color::Indexed(app.highlight_color)));
 
-    // Revision title box layout 
+    // Revision title box layout
     let revision_title_layout = Layout::default()
         .direction(Direction::Vertical)
         .vertical_margin(2)
@@ -1123,21 +1190,21 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
         .split(center_col_layout[1]);
 
-    // Revision title promt 
+    // Revision title promt
     let revision_title_promt;
     if app.cards.len() > 0 {
-        revision_title_promt = Paragraph::new(
-            Span::styled(app.cards[app.revision_index].title.as_str(), Style::default().fg(Color::White))
-        )
-            .alignment(Alignment::Center);
+        revision_title_promt = Paragraph::new(Span::styled(
+            app.cards[app.revision_index].title.as_str(),
+            Style::default().fg(Color::White),
+        ))
+        .alignment(Alignment::Center);
     } else {
-        revision_title_promt = Paragraph::new(
-            Span::styled("No title", Style::default().fg(Color::White))
-        )
-            .alignment(Alignment::Center);
+        revision_title_promt =
+            Paragraph::new(Span::styled("No title", Style::default().fg(Color::White)))
+                .alignment(Alignment::Center);
     }
 
-    // Revision text box 
+    // Revision text box
     let revision_text_box = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
@@ -1145,7 +1212,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .title_alignment(Alignment::Center)
         .style(Style::default().fg(Color::Indexed(app.highlight_color)));
 
-    // Revision text box layout 
+    // Revision text box layout
     let revision_text_layout = Layout::default()
         .direction(Direction::Vertical)
         .vertical_margin(2)
@@ -1153,49 +1220,62 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
         .split(center_col_layout[1]);
 
-    // Revision text promt 
+    // Revision text promt
     let revision_text_promt;
     if app.cards.len() > 0 {
-        revision_text_promt = Paragraph::new(
-            Span::styled(app.cards[app.revision_index].text.as_str(), Style::default().fg(Color::White))
-        )
-            .alignment(Alignment::Center);
+        revision_text_promt = Paragraph::new(Span::styled(
+            app.cards[app.revision_index].text.as_str(),
+            Style::default().fg(Color::White),
+        ))
+        .alignment(Alignment::Center);
     } else {
-        revision_text_promt = Paragraph::new(
-            Span::styled("No text", Style::default().fg(Color::White))
-        )
+        revision_text_promt =
+            Paragraph::new(Span::styled("No text", Style::default().fg(Color::White)))
     }
 
-    // Revision cards index layout col 
+    // Revision cards index layout col
     let revision_cards_index_layout_col = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(20), Constraint::Percentage(20), Constraint::Percentage(39), Constraint::Percentage(20), Constraint::Percentage(1)])
+        .constraints([
+            Constraint::Percentage(20),
+            Constraint::Percentage(20),
+            Constraint::Percentage(39),
+            Constraint::Percentage(20),
+            Constraint::Percentage(1),
+        ])
         .split(center_col_layout[1]);
 
-    // Revision cards index layout 
+    // Revision cards index layout
     let revision_cards_index_layout = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Percentage(10), Constraint::Percentage(20), Constraint::Percentage(20), Constraint::Percentage(20), Constraint::Percentage(20)])
+        .constraints([
+            Constraint::Percentage(10),
+            Constraint::Percentage(20),
+            Constraint::Percentage(20),
+            Constraint::Percentage(20),
+            Constraint::Percentage(20),
+        ])
         .split(revision_cards_index_layout_col[3]);
 
-    // Revision cards index box 
+    // Revision cards index box
     let revision_cards_index_block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded);
 
-    // Revision cards index box layout 
+    // Revision cards index box layout
     let revision_cards_index_block_layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
         .split(revision_cards_index_layout[1]);
 
-    // Revision cards index promt 
-    let revision_cards_index_promt = Paragraph::new(
-        Span::styled(format!("{}/{}", app.revision_index + 1, app.cards.len()), Style::default().fg(Color::White))
-    )
-        .alignment(Alignment::Center);
+    // Revision cards index promt
+    let revision_cards_index_promt = Paragraph::new(Span::styled(
+        format!("{}/{}", app.revision_index + 1, app.cards.len()),
+        Style::default().fg(Color::White),
+    ))
+    .alignment(Alignment::Center);
 
-    // Config box 
+    // Config box
     let config_block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
@@ -1203,15 +1283,23 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .title(Span::styled(" Config ", Style::default().fg(Color::White)))
         .title_alignment(Alignment::Center);
 
-    // Config layout 
+    // Config layout
     let config_layout = Layout::default()
         .direction(Direction::Vertical)
         .vertical_margin(1)
         .horizontal_margin(3)
-        .constraints([Constraint::Percentage(20), Constraint::Percentage(35), Constraint::Percentage(35), Constraint::Percentage(10)].as_ref())
+        .constraints(
+            [
+                Constraint::Percentage(20),
+                Constraint::Percentage(35),
+                Constraint::Percentage(35),
+                Constraint::Percentage(10),
+            ]
+            .as_ref(),
+        )
         .split(center_col_layout[1]);
 
-    // Config input center layout 1 
+    // Config input center layout 1
     let config_input_center_layout_1 = Layout::default()
         .direction(Direction::Vertical)
         .horizontal_margin(1)
@@ -1225,7 +1313,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
         .split(config_layout[2]);
 
-    // Config input block 1 
+    // Config input block 1
     let config_input_block_1 = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
@@ -1237,7 +1325,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .border_type(BorderType::Rounded)
         .style(Style::default().fg(Color::White));
 
-    // Config input layout 1 
+    // Config input layout 1
     let config_input_layout_1 = Layout::default()
         .direction(Direction::Horizontal)
         .horizontal_margin(1)
@@ -1252,28 +1340,36 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .split(config_input_center_layout_2[1]);
 
     // Config promt 1
-    let config_promt_1 = Paragraph::new(
-        Span::styled("db_file:", Style::default().fg(Color::White).add_modifier(Modifier::BOLD))
-    )
-        .alignment(Alignment::Center);
+    let config_promt_1 = Paragraph::new(Span::styled(
+        "db_file:",
+        Style::default()
+            .fg(Color::White)
+            .add_modifier(Modifier::BOLD),
+    ))
+    .alignment(Alignment::Center);
 
     // Config promt 2
-    let config_promt_2 = Paragraph::new(
-        Span::styled("highlight_color:", Style::default().fg(Color::White).add_modifier(Modifier::BOLD))
-    )
-        .alignment(Alignment::Center);
+    let config_promt_2 = Paragraph::new(Span::styled(
+        "highlight_color:",
+        Style::default()
+            .fg(Color::White)
+            .add_modifier(Modifier::BOLD),
+    ))
+    .alignment(Alignment::Center);
 
-    // Config value 1 
-    let config_value_1 = Paragraph::new(
-        Span::styled(app.config_input_1.as_str(), Style::default().fg(Color::White))
-    )
-        .alignment(Alignment::Left);
+    // Config value 1
+    let config_value_1 = Paragraph::new(Span::styled(
+        app.config_input_1.as_str(),
+        Style::default().fg(Color::White),
+    ))
+    .alignment(Alignment::Left);
 
     // Config value 2
-    let config_value_2 = Paragraph::new(
-        Span::styled(app.config_input_2.as_str(), Style::default().fg(Color::White))
-    )
-        .alignment(Alignment::Left);
+    let config_value_2 = Paragraph::new(Span::styled(
+        app.config_input_2.as_str(),
+        Style::default().fg(Color::White),
+    ))
+    .alignment(Alignment::Left);
 
     // Render Popup windows
     match app.selected_window {
@@ -1282,7 +1378,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             f.render_widget(add_stack_input_outline, add_stack_popup_input_layout[1]);
             f.render_widget(add_stack_input, add_stack_popup_layout_col_1[1]);
             f.render_widget(add_stack_input_text, add_stack_popup_layout_col_0[1]);
-        },
+        }
         Selected::DeleteStackPopup => {
             f.render_widget(delete_stack_popup_block, center_col_layout[1]);
             f.render_widget(delete_stack_popup_text, delete_stack_popup_layout_col_1[1]);
@@ -1312,13 +1408,19 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             f.render_widget(revision_title_box, center_col_layout[1]);
             f.render_widget(revision_title_promt, revision_title_layout[1]);
             f.render_widget(revision_cards_index_block, revision_cards_index_layout[1]);
-            f.render_widget(revision_cards_index_promt, revision_cards_index_block_layout[1]);
+            f.render_widget(
+                revision_cards_index_promt,
+                revision_cards_index_block_layout[1],
+            );
         }
         Selected::RevisionText => {
             f.render_widget(revision_text_box, center_col_layout[1]);
             f.render_widget(revision_text_promt, revision_text_layout[1]);
             f.render_widget(revision_cards_index_block, revision_cards_index_layout[1]);
-            f.render_widget(revision_cards_index_promt, revision_cards_index_block_layout[1]);
+            f.render_widget(
+                revision_cards_index_promt,
+                revision_cards_index_block_layout[1],
+            );
         }
         Selected::EditStackPopup => {
             f.render_widget(edit_stack_popup_block, center_col_layout[1]);
@@ -1345,5 +1447,5 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             f.render_widget(config_value_2, config_input_layout_2[1]);
         }
         _ => {}
-    } 
+    }
 }
