@@ -1,5 +1,5 @@
 use crate::ui::App;
-use crate::ui::CardInputFocus;
+use crate::state::CardInputFocus;
 use crate::ui::Selected;
 use crossterm::event::KeyCode;
 use tui::{

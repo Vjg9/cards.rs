@@ -1,7 +1,7 @@
 use crate::config;
 use crate::db::init;
 use crate::ui::App;
-use crate::ui::ConfigFocus;
+use crate::state::ConfigFocus;
 use crate::ui::Selected;
 use crossterm::event::KeyCode;
 use tui::{
