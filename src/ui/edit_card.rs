@@ -1,5 +1,5 @@
-use crate::ui::App;
 use crate::state::CardInputFocus;
+use crate::ui::App;
 use crate::ui::Selected;
 use crossterm::event::KeyCode;
 use tui::{
@@ -17,6 +17,7 @@ pub fn handle_events(key_code: KeyCode, app: &mut App) {
             app.selected_window = Selected::CardList;
             app.card_text_input = String::new();
             app.card_title_input = String::new();
+            app.card_input_focus = CardInputFocus::Title;
         }
         KeyCode::Tab => match &app.card_input_focus {
             CardInputFocus::Title => {
@@ -96,16 +97,28 @@ pub fn render<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .split(add_card_center_layout[1]);
 
     // Add card title input box
-    let add_card_title_input_box = Block::default()
-        .style(Style::default().fg(Color::White))
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded);
+    let add_card_title_input_box = match app.card_input_focus {
+        CardInputFocus::Title => Block::default()
+            .style(Style::default().fg(Color::Indexed(app.highlight_color)))
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded),
+        CardInputFocus::Text => Block::default()
+            .style(Style::default().fg(Color::White))
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded),
+    };
 
     // Add card text input box
-    let add_card_text_input_box = Block::default()
-        .style(Style::default().fg(Color::White))
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded);
+    let add_card_text_input_box = match app.card_input_focus {
+        CardInputFocus::Text => Block::default()
+            .style(Style::default().fg(Color::Indexed(app.highlight_color)))
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded),
+        CardInputFocus::Title => Block::default()
+            .style(Style::default().fg(Color::White))
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded),
+    };
 
     // Add card title input box layout
     let add_card_title_input_layout_half = Layout::default()
@@ -130,19 +143,72 @@ pub fn render<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .split(add_card_text_input_promt_layout[1]);
 
     // Add card title input box promt
-    let add_card_title_input_promt =
-        Paragraph::new(Span::from("title: ")).style(Style::default().add_modifier(Modifier::BOLD));
+    let add_card_title_input_promt = match app.card_input_focus {
+        CardInputFocus::Title => Paragraph::new(Span::from("title: "))
+            .style(
+                Style::default()
+                    .fg(Color::White)
+                    .add_modifier(Modifier::BOLD),
+            )
+            .block(
+                Block::default()
+                    .borders(Borders::BOTTOM)
+                    .style(Style::default().fg(Color::Indexed(app.highlight_color))),
+            ),
+        CardInputFocus::Text => Paragraph::new(Span::from("title: ")).style(
+            Style::default()
+                .fg(Color::White)
+                .add_modifier(Modifier::BOLD),
+        ),
+    };
 
     // Add card title input box value
-    let add_card_title_input_value = Paragraph::new(Span::from(app.card_title_input.as_ref()));
+    let add_card_title_input_value = match app.card_input_focus {
+        CardInputFocus::Title => Paragraph::new(Span::from(app.card_title_input.as_ref()))
+            .style(Style::default().fg(Color::White))
+            .block(
+                Block::default()
+                    .borders(Borders::BOTTOM)
+                    .style(Style::default().fg(Color::Indexed(app.highlight_color))),
+            ),
+        CardInputFocus::Text => Paragraph::new(Span::from(app.card_title_input.as_ref()))
+            .style(Style::default().fg(Color::White)),
+    };
 
     // Add card text input box promt
-    let add_card_text_input_promt =
-        Paragraph::new(Span::from("text: ")).style(Style::default().add_modifier(Modifier::BOLD));
+    let add_card_text_input_promt = match app.card_input_focus {
+        CardInputFocus::Text => Paragraph::new(Span::from("text: "))
+            .style(
+                Style::default()
+                    .fg(Color::White)
+                    .add_modifier(Modifier::BOLD),
+            )
+            .block(
+                Block::default()
+                    .borders(Borders::BOTTOM)
+                    .style(Style::default().fg(Color::Indexed(app.highlight_color))),
+            ),
+        CardInputFocus::Title => Paragraph::new(Span::from("text: ")).style(
+            Style::default()
+                .fg(Color::White)
+                .add_modifier(Modifier::BOLD),
+        ),
+    };
 
     // Add card text input box value
-    let add_card_text_input_value =
-        Paragraph::new(Span::from(app.card_text_input.as_ref())).wrap(Wrap { trim: true });
+    let add_card_text_input_value = match app.card_input_focus {
+        CardInputFocus::Text => Paragraph::new(Span::from(app.card_text_input.as_ref()))
+            .wrap(Wrap { trim: true })
+            .style(Style::default().fg(Color::White))
+            .block(
+                Block::default()
+                    .borders(Borders::BOTTOM)
+                    .style(Style::default().fg(Color::Indexed(app.highlight_color))),
+            ),
+        CardInputFocus::Title => Paragraph::new(Span::from(app.card_text_input.as_ref()))
+            .wrap(Wrap { trim: true })
+            .style(Style::default().fg(Color::White)),
+    };
 
     // Edit card box
     let edit_card_block = Block::default()

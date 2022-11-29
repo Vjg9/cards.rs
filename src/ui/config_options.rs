@@ -1,7 +1,7 @@
 use crate::config;
 use crate::db::init;
-use crate::ui::App;
 use crate::state::ConfigFocus;
+use crate::ui::App;
 use crate::ui::Selected;
 use crossterm::event::KeyCode;
 use tui::{
@@ -55,6 +55,7 @@ pub fn handle_events(key_code: KeyCode, app: &mut App) {
         }
         KeyCode::Esc => {
             app.selected_window = Selected::Main;
+            app.config_input_focus = ConfigFocus::DbFile;
         }
         _ => {}
     }
@@ -124,16 +125,28 @@ pub fn render<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .split(config_layout[2]);
 
     // Config input block 1
-    let config_input_block_1 = Block::default()
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded)
-        .style(Style::default().fg(Color::White));
+    let config_input_block_1 = match app.config_input_focus {
+        ConfigFocus::DbFile => Block::default()
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded)
+            .style(Style::default().fg(Color::Indexed(app.highlight_color))),
+        ConfigFocus::HighlightColor => Block::default()
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded)
+            .style(Style::default().fg(Color::White)),
+    };
 
     // Config input block 2
-    let config_input_block_2 = Block::default()
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded)
-        .style(Style::default().fg(Color::White));
+    let config_input_block_2 = match app.config_input_focus {
+        ConfigFocus::HighlightColor => Block::default()
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded)
+            .style(Style::default().fg(Color::Indexed(app.highlight_color))),
+        ConfigFocus::DbFile => Block::default()
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded)
+            .style(Style::default().fg(Color::White)),
+    };
 
     // Config input layout 1
     let config_input_layout_1 = Layout::default()
