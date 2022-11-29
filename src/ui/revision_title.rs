@@ -14,6 +14,7 @@ pub fn handle_events(key_code: KeyCode, app: &mut App) {
     match key_code {
         KeyCode::Esc => {
             app.selected_window = Selected::Side;
+            app.revision_index = 0;
         }
         KeyCode::Enter => {
             app.selected_window = Selected::RevisionText;
