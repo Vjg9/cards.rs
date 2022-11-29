@@ -76,13 +76,13 @@ pub fn render<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .direction(Direction::Vertical)
         .horizontal_margin(3)
         .vertical_margin(1)
-        .constraints([Constraint::Percentage(45), Constraint::Percentage(55)])
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
         .split(add_stack_popup_layout_row[1]);
     let add_stack_popup_layout_col_0 = Layout::default()
         .direction(Direction::Vertical)
         .horizontal_margin(3)
         .vertical_margin(1)
-        .constraints([Constraint::Percentage(45), Constraint::Percentage(55)])
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(55)])
         .split(add_stack_popup_layout_row[0]);
 
     // Add Stack Input box layout
