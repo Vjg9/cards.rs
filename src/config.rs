@@ -24,9 +24,18 @@ pub fn init() {
 pub fn get_db_file() -> String {
     let home_dir: String = env::var("HOME").unwrap();
     let json: String = fs::read_to_string(format!("{}/{}{}", home_dir, CONFIG_DIR, "config.json")).unwrap();
-    let config: Config = serde_json::from_str(json.as_str()).unwrap(); 
+    let config: Config = serde_json::from_str(json.as_str()).unwrap_or(
+        Config {
+            db_file: format!("{}/{}{}", home_dir, CONFIG_DIR, "cards.db"),
+            highlight_color: 7
+        }
+    ); 
 
-    format!("{}/{}", &home_dir, &config.db_file)
+    if std::path::Path::new(format!("{}/{}", &home_dir, &config.db_file).as_str()).exists() {
+        format!("{}/{}", &home_dir, &config.db_file)
+    } else {
+        format!("{}/{}{}", &home_dir, CONFIG_DIR, "cards.db")
+    }
 }
 
 pub fn get_db_file_raw() -> String {
@@ -40,7 +49,10 @@ pub fn get_db_file_raw() -> String {
 pub fn get_highlight_color() -> u8 {
     let home_dir: String = env::var("HOME").unwrap();
     let json: String = fs::read_to_string(format!("{}/{}{}", home_dir, CONFIG_DIR, "config.json")).unwrap();
-    let config: Config = serde_json::from_str(json.as_str()).unwrap(); 
+    let config: Config = serde_json::from_str(json.as_str()).unwrap_or(Config {
+        db_file: "".to_string(),
+        highlight_color: 7
+    }); 
 
     config.highlight_color
 }
