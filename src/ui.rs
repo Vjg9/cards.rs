@@ -24,6 +24,7 @@ pub mod edit_card;
 pub mod revision_title;
 pub mod revision_text;
 pub mod config_options;
+pub mod size_error;
 
 // Run the ui
 pub fn run_ui() -> Result<(), Box<dyn Error>> {
@@ -91,24 +92,29 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
 // Ui code
 fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     
-    // Render Main window
-    crate::ui::main::render(f, app);
+    // Check if terminal is big enough
+    if crossterm::terminal::size().unwrap().0 > 172 && crossterm::terminal::size().unwrap().1 > 47 {
+        // Render Main window
+        crate::ui::main::render(f, app);
 
-    // Render Side window 
-    crate::ui::side::render(f, app);
+        // Render Side window 
+        crate::ui::side::render(f, app);
 
-    // Render Popup windows
-    match app.selected_window {
-        Selected::StackNameInput => crate::ui::stack_name_input::render(f, app),
-        Selected::DeleteStackPopup => crate::ui::delete_stack_popup::render(f, app),
-        Selected::AddCard => crate::ui::add_card::render(f, app),
-        Selected::CardList => crate::ui::card_list::render(f, app),
-        Selected::DeleteCard => crate::ui::delete_card::render(f, app),
-        Selected::RevisionTitle => crate::ui::revision_title::render(f, app),
-        Selected::RevisionText => crate::ui::revision_text::render(f, app),
-        Selected::EditStackPopup => crate::ui::edit_stack_popup::render(f, app),
-        Selected::EditCard => crate::ui::edit_card::render(f, app),
-        Selected::ConfigOptions => crate::ui::config_options::render(f, app),
-        _ => {}
+        // Render Popup windows
+        match app.selected_window {
+            Selected::StackNameInput => crate::ui::stack_name_input::render(f, app),
+            Selected::DeleteStackPopup => crate::ui::delete_stack_popup::render(f, app),
+            Selected::AddCard => crate::ui::add_card::render(f, app),
+            Selected::CardList => crate::ui::card_list::render(f, app),
+            Selected::DeleteCard => crate::ui::delete_card::render(f, app),
+            Selected::RevisionTitle => crate::ui::revision_title::render(f, app),
+            Selected::RevisionText => crate::ui::revision_text::render(f, app),
+            Selected::EditStackPopup => crate::ui::edit_stack_popup::render(f, app),
+            Selected::EditCard => crate::ui::edit_card::render(f, app),
+            Selected::ConfigOptions => crate::ui::config_options::render(f, app),
+            _ => {}
+        }
+    } else {
+        crate::ui::size_error::render(f, app);
     }
 }
