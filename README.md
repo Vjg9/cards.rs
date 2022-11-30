@@ -2,6 +2,9 @@
 	<img src="assets/logo.svg" width=170 </img>
 </div>
 <h1 align="center">Cards</h1>
+
+![build](https://github.com/Vjg9/cards.rs/actions/workflows/rust.yml/badge.svg)
+
 <h5 align="center">A CLI app for revisions</h5>
 
 ## Preview
